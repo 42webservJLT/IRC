@@ -16,6 +16,9 @@
 #include <vector>
 
 
+typedef enum Mode {
+	
+
 class Server {
 	public:
 		Server(uint16_t port, std::string password);
@@ -36,7 +39,7 @@ class Server {
 		void Join(int clientSocket, const std::string& channel);
 		void PrivMsg(int clientSocket, const std::string& target, const std::string& message);
 
-//		operator commands
+//		operator commands for channels
 		void Kick(int clientSocket, const std::string& channel, const std::string& target);
 		void Invite(int clientSocket, const std::string& channel, const std::string& target);
 		void Topic(int clientSocket, const std::string& channel, const std::string& topic);
@@ -57,6 +60,8 @@ class Server {
 		std::vector<pollfd> _pollFds;
 //		maps client socket to client
 		std::map<int, Client> _clients;
+//		maps channel name to channel
+		std::map<std::string, Channel> _channels;
 };
 
 
