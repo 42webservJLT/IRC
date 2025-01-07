@@ -9,5 +9,6 @@
 #include <string>
 #include <stdexcept>
 #include <cstdint>
+#include "Server.hpp"
 
 #endif //IRC_MAIN_H

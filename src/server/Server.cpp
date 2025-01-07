@@ -23,7 +23,7 @@ Server::Server(uint16_t port, std::string password) : _port(port), _password(pas
 
 //	resolve hostname to IP address
 	struct addrinfo* res;
-	int status = getaddrinfo(server.GetConfig().GetHost().c_str(), std::to_string(server.GetConfig().GetPort()).c_str(), &hints, &res);
+	int status = getaddrinfo("localhost", std::to_string(GetPort()).c_str(), &hints, &res);
 	if (status != 0) {
 		close(_socket);
 		throw std::runtime_error("Failed to resolve hostname");
@@ -44,6 +44,27 @@ Server::Server(uint16_t port, std::string password) : _port(port), _password(pas
 
 Server::~Server() {}
 
+// returns the port number
+uint16_t Server::GetPort() const {
+	return _port;
+}
+
+// returns the password
+std::string Server::GetPassword() const {
+	return _password;
+}
+
+// returns the socket
+int Server::GetSocket() const {
+	return _socket;
+}
+
+// returns the pollfd vector
+std::vector<pollfd> Server::GetPollFds() const {
+	return _pollFds;
+}
+
+// runs the server
 void Server::Run() {
 //	start listening
 	if (listen(_socket, SOMAXCONN) < 0) {
@@ -71,7 +92,7 @@ void Server::Run() {
 						_pollFds.push_back({ clientSocket, POLLIN, 0 });
 					}
 				} else {
-					server.HandleConnection(it->fd);
+					HandleConnection(it->fd);
 					close(it->fd);
 					it = _pollFds.erase(it);
 					if (it == _pollFds.end()) {
@@ -83,6 +104,16 @@ void Server::Run() {
 	}
 }
 
-void Server::HandleConnection() {
+// handles a connection
+void Server::HandleConnection(int clientSocket) {
+	(void)clientSocket;
+	std::cout << "Handling connection" << std::endl;
 //	TODO: implement
+//	verify password
+
+//	read message
+//	parse message
+//	handle message
+//	send response
+//	close connection
 }
