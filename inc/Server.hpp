@@ -21,20 +21,42 @@ class Server {
 		Server(uint16_t port, std::string password);
 		~Server();
 
+//		runs the server
 		void Run();
-		void HandleConnection(int clientSocket);
 
+//		connection handling
+		void HandleNewConnection(int clientSocket);
+		void HandleConnection(int clientSocket);
+		void HandleDisconnection(int clientSocket);
+
+//		client commands
+		void Authenticate(int clientSocket, const std::string& password);
+		void Nick(int clientSocket, const std::string& nickname);
+		void User(int clientSocket, const std::string& username);
+		void Join(int clientSocket, const std::string& channel);
+		void PrivMsg(int clientSocket, const std::string& target, const std::string& message);
+
+//		operator commands
+		void Kick(int clientSocket, const std::string& channel, const std::string& target);
+		void Invite(int clientSocket, const std::string& channel, const std::string& target);
+		void Topic(int clientSocket, const std::string& channel, const std::string& topic);
+		void Mode(int clientSocket, const std::string& channel, const std::string& mode);
+
+//		getters
 		std::string GetHost() const;
 		uint16_t GetPort() const;
 		std::string GetPassword() const;
 		int GetSocket() const;
 		std::vector<pollfd> GetPollFds() const;
+
 	private:
 		std::string _host;
 		uint16_t _port;
 		std::string _password;
 		int _socket;
 		std::vector<pollfd> _pollFds;
+//		maps client socket to client
+		std::map<int, Client> _clients;
 };
 
 

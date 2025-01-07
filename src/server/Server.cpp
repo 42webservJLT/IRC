@@ -88,24 +88,44 @@ void Server::Run() {
 			throw std::runtime_error("Failed to poll");
 		}
 
+//		handle incoming connections
 		for (auto it = _pollFds.begin(); it != _pollFds.end(); ++it) {
-			if (it->revents & POLLIN) {
-				if (it->fd == _socket) {
-					int clientSocket = accept(_socket, nullptr, nullptr);
-					if (clientSocket >= 0) {
-						fcntl(clientSocket, F_SETFL, O_NONBLOCK);
-						_pollFds.push_back({ clientSocket, POLLIN, 0 });
+			switch (it->revents) {
+				case POLLIN:
+					if (it->fd == _socket) {
+//						new client connection
+						HandleNewConnection();
+					} else {
+//						old client connection
+						HandleConnection(it->fd);
 					}
-				} else {
-					HandleConnection(it->fd);
-					close(it->fd);
-					it = _pollFds.erase(it);
-					if (it == _pollFds.end()) {
-						break;
-					}
-				}
+					break;
+				case POLLHUP:
+//					client disconnected
+					HandleDisconnection(it->fd);
+					break;
+				case 0:
+					continue;
+				default:
+					break;
 			}
+
 		}
+	}
+}
+
+// handles a new connection
+void Server::HandleNewConnection(int clientSocket) {
+//	sockaddr_in clientAddr;
+//	int clientFd = accept(_socket, &clientAddr, nullptr);
+	int clientFd = accept(_socket, nullptr, nullptr);
+	if (clientFd >= 0) {
+//		set client socket to non-blocking
+		fcntl(clientFd, F_SETFL, O_NONBLOCK);
+		_pollFds.push_back({ clientFd, POLLIN, 0 });
+
+		Client client;
+		_clients.insert({ clientFd, client });
 	}
 }
 
@@ -121,4 +141,13 @@ void Server::HandleConnection(int clientSocket) {
 //	handle message
 //	send response
 //	close connection
+}
+
+// handles a disconnection
+void Server::HandleDisconnection(int clientSocket) {
+	_clients.erase(clientSocket);
+	close(clientSocket);
+	_pollFds.erase(std::remove_if(_pollFds.begin(), _pollFds.end(), [clientSocket](const pollfd &fd) {
+		return fd.fd == clientSocket;
+	}), _pollFds.end());
 }
