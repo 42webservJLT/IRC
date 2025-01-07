@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
 
 //		create server instance & run
 		Server server(port, password);
-		server.run();
+		server.Run();
 	} catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
 		return 1;

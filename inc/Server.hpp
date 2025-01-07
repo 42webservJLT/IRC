@@ -11,7 +11,8 @@ class Server {
 		Server(uint16_t port, std::string password);
 		~Server();
 
-		void run();
+		void Run();
+		void HandleConnection();
 	private:
 		uint16_t _port;
 		std::string _password;

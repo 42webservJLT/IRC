@@ -25,14 +25,12 @@ Server::Server(uint16_t port, std::string password) : _port(port), _password(pas
 	struct addrinfo* res;
 	int status = getaddrinfo(server.GetConfig().GetHost().c_str(), std::to_string(server.GetConfig().GetPort()).c_str(), &hints, &res);
 	if (status != 0) {
-		std::cerr << "Error: Failed to resolve hostname: " << gai_strerror(status) << std::endl;
 		close(_socket);
 		throw std::runtime_error("Failed to resolve hostname");
 	}
 
 //	bind socket
 	if (bind(_socket, res->ai_addr, res->ai_addrlen) == -1) {
-		std::cerr << "Error: Failed to bind socket" << std::endl;
 		freeaddrinfo(res);
 		close(_socket);
 		throw std::runtime_error("Failed to bind socket");
@@ -46,13 +44,45 @@ Server::Server(uint16_t port, std::string password) : _port(port), _password(pas
 
 Server::~Server() {}
 
-void Server::run() {
+void Server::Run() {
 //	start listening
 	if (listen(_socket, SOMAXCONN) < 0) {
-		std::cerr << "Listen failed" << std::endl;
 		close(_socket);
 		throw std::runtime_error("Failed to listen");
 	}
 
+//	announce server is running
 	std::cout << "Server running on port " << _port << " with password " << _password << std::endl;
+
+//	start polling
+	while (true) {
+		int pollCount = poll(_pollFds.data(), _pollFds.size(), -1);
+		if (pollCount < 0) {
+			close(_socket);
+			throw std::runtime_error("Failed to poll");
+		}
+
+		for (auto it = _pollFds.begin(); it != _pollFds.end(); ++it) {
+			if (it->revents & POLLIN) {
+				if (it->fd == _socket) {
+					int clientSocket = accept(_socket, nullptr, nullptr);
+					if (clientSocket >= 0) {
+						fcntl(clientSocket, F_SETFL, O_NONBLOCK);
+						_pollFds.push_back({ clientSocket, POLLIN, 0 });
+					}
+				} else {
+					server.HandleConnection(it->fd);
+					close(it->fd);
+					it = _pollFds.erase(it);
+					if (it == _pollFds.end()) {
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+void Server::HandleConnection() {
+//	TODO: implement
 }
