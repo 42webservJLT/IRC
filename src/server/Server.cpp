@@ -4,7 +4,7 @@
 
 #include "Server.hpp"
 
-Server::Server(uint16_t port, std::string password) : _port(port), _password(password) {
+Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(port), _password(password) {
 	//	open socket
 	_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (_socket == -1) {
@@ -23,7 +23,7 @@ Server::Server(uint16_t port, std::string password) : _port(port), _password(pas
 
 //	resolve hostname to IP address
 	struct addrinfo* res;
-	int status = getaddrinfo("localhost", std::to_string(GetPort()).c_str(), &hints, &res);
+	int status = getaddrinfo(GetHost().c_str(), std::to_string(GetPort()).c_str(), &hints, &res);
 	if (status != 0) {
 		close(_socket);
 		throw std::runtime_error("Failed to resolve hostname");
@@ -43,6 +43,11 @@ Server::Server(uint16_t port, std::string password) : _port(port), _password(pas
 }
 
 Server::~Server() {}
+
+// returns the host
+std::string Server::GetHost() const {
+	return _host;
+}
 
 // returns the port number
 uint16_t Server::GetPort() const {
@@ -73,7 +78,7 @@ void Server::Run() {
 	}
 
 //	announce server is running
-	std::cout << "Server running on port " << _port << " with password " << _password << std::endl;
+	std::cout << "Server running on " << GetHost() << ":" << GetPort() << std::endl;
 
 //	start polling
 	while (true) {

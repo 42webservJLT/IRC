@@ -23,11 +23,14 @@ class Server {
 
 		void Run();
 		void HandleConnection(int clientSocket);
+
+		std::string GetHost() const;
 		uint16_t GetPort() const;
 		std::string GetPassword() const;
 		int GetSocket() const;
 		std::vector<pollfd> GetPollFds() const;
 	private:
+		std::string _host;
 		uint16_t _port;
 		std::string _password;
 		int _socket;
