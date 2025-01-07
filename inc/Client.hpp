@@ -7,10 +7,10 @@
 
 
 typedef ClientState enum {
+//	client is connected, but not yet authenticated
 	CONNECTED,
-	REGISTERED,
-	AWAY,
-	OPERATOR
+//	client is connected & authenticated
+	AUTHENTICATED,
 };
 
 class Client {
@@ -22,7 +22,8 @@ class Client {
 		std::string _userName;
 		std::string _nickName;
 		std::vector<std::string> _channels;
-		ClientState _state;
+		bool _authenticated;
+		std::vector<std::string> _joinedChannels;
 };
 
 
