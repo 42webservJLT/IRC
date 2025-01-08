@@ -154,10 +154,12 @@ void Server::HandleConnection(int clientSocket) {
 		std::string& clientBuffer = _clients[clientSocket].GetMsgBuffer();
 		clientBuffer.append(msg);
 
+//		for real irc client, check for \r\n instead!
 		if (msg.find("\n") != std::string::npos) {
 //			verify authenticated
 			if (!_clients[clientSocket].GetAuthenticated()) {
-//				TODO: implement
+				send(clientSocket, ERR_MSG_UNAUTHENTICATED, strlen(ERR_MSG_UNAUTHENTICATED), 0);
+				return;
 			}
 //			TODO: implement
 //			parse message

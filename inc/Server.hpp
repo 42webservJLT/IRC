@@ -21,6 +21,8 @@
 #define MAX_BUFFER_SIZE 1024
 #define MAX_CONNECTIONS SOMAXCONN
 
+#define ERR_MSG_UNAUTHENTICATED "You are not authenticated yet\n"
+
 class Server {
 	public:
 		Server(uint16_t port, std::string password);
