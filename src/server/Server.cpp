@@ -237,9 +237,25 @@ void Server::User(int clientSocket, const std::vector<std::string> tokens) {
 
 // joins a channel
 void Server::Join(int clientSocket, const std::vector<std::string> tokens) {
-	(void) clientSocket;
-	(void) tokens;
-//	TODO: implement
+	if (tokens.size() != 2) {
+		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+	} else {
+//		check whether channel exists
+		if (_channels.find(tokens[1]) != _channels.end()) {
+//			check whether channel is invite only or if client is invited
+			if (!_channels[tokens[1]].GetInviteOnly() || _channels[tokens[1]].GetInvited().find) {
+//				check whether user limit is reached
+				if (_channels[tokens[1]].GetUserLimit() > 0 && _channels[tokens[1]].GetUsers().size() <
+				_channels[tokens[1]].GetUserLimit()) {
+					_channels[tokens[1]].AddUser(_clients[clientSocket].GetNickName());
+				} else {
+					send(clientSocket, ERR_MSG_CHANNEL_FULL, std::string(ERR_MSG_CHANNEL_FULL).size(), 0);
+				}
+			}
+		} else {
+			send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
+		}
+	}
 }
 
 // sends a private message
