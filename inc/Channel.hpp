@@ -21,6 +21,9 @@ class Channel {
 		bool GetInviteOnly() const;
 		size_t GetUserLimit() const;
 		std::vector<std::string> GetMessages() const;
+		std::vector<Client> GetOperators() const;
+		std::vector<Client> GetUsers() const;
+		std::vector<Client> GetInvited() const;
 
 		void SetName(std::string name);
 		void SetPassword(std::string password);
@@ -44,6 +47,7 @@ class Channel {
 
 		std::vector<Client> _operators;
 		std::vector<Client> _users;
+		std::vector<Client> _invited;
 };
 
 
