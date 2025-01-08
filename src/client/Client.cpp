@@ -7,7 +7,7 @@
 /* --------------------------------------------------------------------------------- */
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
-Client::Client() : _userName(""), _nickName(""), _authenticated(false) {}
+Client::Client() : _userName(""), _nickName(""), _authenticated(false), _msgBuffer("") {}
 
 Client::~Client() {}
 
@@ -27,6 +27,10 @@ std::string Client::GetNickName() const {
 // returns if client is authenticated
 bool Client::GetAuthenticated() const {
 	return _authenticated;
+}
+
+std::string& Client::GetMsgBuffer() {
+	return _msgBuffer;
 }
 
 // sets the username of the client

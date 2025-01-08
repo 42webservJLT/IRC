@@ -24,6 +24,7 @@ class Client {
 		std::string GetUserName() const;
 		std::string GetNickName() const;
 		bool GetAuthenticated() const;
+		std::string& GetMsgBuffer();
 
 //		TODO: implement
 		void SetUserName(std::string userName);
@@ -35,6 +36,9 @@ class Client {
 		std::string _userName;
 		std::string _nickName;
 		bool _authenticated;
+
+//		holds chunked message
+		std::string _msgBuffer;
 };
 
 

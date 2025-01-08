@@ -145,20 +145,28 @@ void Server::HandleNewConnection() {
 
 // handles a connection
 void Server::HandleConnection(int clientSocket) {
-	char buffer[MAX_BUFFER_SIZE];
-	std::memset(buffer, 0, MAX_BUFFER_SIZE);
-	ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+	char buffer[MAX_BUFFER_SIZE + 1];
+	std::memset(buffer, 0, MAX_BUFFER_SIZE + 1);
+	ssize_t bytesRead = recv(clientSocket, buffer, MAX_BUFFER_SIZE, 0);
 	if (bytesRead > 0) {
-//		buffer[bytesRead] = '\0';
 		std::string msg(buffer);
-		std::cout << "Received msg on socket " << clientSocket << ": " << msg << std::endl;
-		// TODO: implement
-		// verify password
-		// read message
-		// parse message
-		// handle message
-		// send response
-		// close connection
+
+		std::string& clientBuffer = _clients[clientSocket].GetMsgBuffer();
+		clientBuffer.append(msg);
+
+		if (msg.find("\n") != std::string::npos) {
+//			verify authenticated
+			if (!_clients[clientSocket].GetAuthenticated()) {
+//				TODO: implement
+			}
+//			TODO: implement
+//			parse message
+//			handle message
+//			send response
+//			clear buffer
+			std::cout << clientBuffer << std::endl;
+			clientBuffer.clear();
+		}
 	} else if (bytesRead == 0) {
 		HandleDisconnection(clientSocket);
 	} else {
