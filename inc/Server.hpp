@@ -6,6 +6,7 @@
 #define IRC_SERVER_H
 
 #include <sys/socket.h>
+#include <string>
 #include <poll.h>
 #include <netdb.h>
 #include <cstring>
@@ -22,6 +23,20 @@
 #define MAX_CONNECTIONS SOMAXCONN
 
 #define ERR_MSG_UNAUTHENTICATED "You are not authenticated yet\n"
+#define ERR_MSG_INVALID_COMMAND "Invalid command\n"
+
+typedef enum {
+	AUTHENTICATE,
+	NICK,
+	USER,
+	JOIN,
+	PRIVMSG,
+	KICK,
+	INVITE,
+	TOPIC,
+	MODE,
+	INVALID,
+} Method;
 
 class Server {
 	public:
@@ -37,17 +52,17 @@ class Server {
 		void HandleDisconnection(int clientSocket);
 
 //		client commands
-		void Authenticate(int clientSocket, const std::string& password);
-		void Nick(int clientSocket, const std::string& nickname);
-		void User(int clientSocket, const std::string& username);
-		void Join(int clientSocket, const std::string& channel);
-		void PrivMsg(int clientSocket, const std::string& target, const std::string& message);
+		void Authenticate(int clientSocket, const std::vector<std::string> tokens);
+		void Nick(int clientSocket, const std::vector<std::string> tokens);
+		void User(int clientSocket, const std::vector<std::string> tokens);
+		void Join(int clientSocket, const std::vector<std::string> tokens);
+		void PrivMsg(int clientSocket, const std::vector<std::string> tokens);
 
 //		operator commands for channels
-		void Kick(int clientSocket, const std::string& channel, const std::string& target);
-		void Invite(int clientSocket, const std::string& channel, const std::string& target);
-		void Topic(int clientSocket, const std::string& channel, const std::string& topic);
-		void Mode(int clientSocket, const std::string& channel, const std::string& mode);
+		void Kick(int clientSocket, const std::vector<std::string> tokens);
+		void Invite(int clientSocket, const std::vector<std::string> tokens);
+		void Topic(int clientSocket, const std::vector<std::string> tokens);
+		void Mode(int clientSocket, const std::vector<std::string> tokens);
 
 //		getters
 		std::string GetHost() const;
@@ -66,6 +81,10 @@ class Server {
 		std::map<int, Client> _clients;
 //		maps channel name to channel
 		std::map<std::string, Channel> _channels;
+//		mapping of method to function
+		std::map<Method, void (Server::*)(int, const std::vector<std::string>)> _methods;
+//		instance of parser class
+//		Parser _parser;
 };
 
 
