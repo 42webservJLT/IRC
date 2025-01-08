@@ -14,10 +14,12 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <vector>
+#include <map>
+#include "Client.hpp"
+#include "Channel.hpp"
 
-
-typedef enum Mode {
-	
+#define MAX_BUFFER_SIZE 1024
+#define MAX_CONNECTIONS SOMAXCONN
 
 class Server {
 	public:
@@ -28,7 +30,7 @@ class Server {
 		void Run();
 
 //		connection handling
-		void HandleNewConnection(int clientSocket);
+		void HandleNewConnection();
 		void HandleConnection(int clientSocket);
 		void HandleDisconnection(int clientSocket);
 

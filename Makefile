@@ -7,14 +7,20 @@ SRCDIR := ./src
 OBJDIR = ./obj
 
 SERVERDIR = server
+CLIENTDIR = client
+CHANNELDIR = channel
 
 SRC := $(addprefix $(SRCDIR)/$(SERVERDIR)/, Server.cpp)
+SRC += $(addprefix $(SRCDIR)/$(CHANNELDIR)/, Channel.cpp)
+SRC += $(addprefix $(SRCDIR)/$(CLIENTDIR)/, Client.cpp)
 SRC += $(addprefix $(SRCDIR)/, main.cpp)
 
 OBJ := $(SRC:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	mkdir -p $(OBJDIR)/$(SERVERDIR)
+	mkdir -p $(OBJDIR)/$(CLIENTDIR)
+	mkdir -p $(OBJDIR)/$(CHANNELDIR)
 	$(CPP) $(CPPFLAGS) -c $< -o $@
 
 all: $(NAME)

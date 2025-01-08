@@ -4,6 +4,9 @@
 
 #include "Server.hpp"
 
+/* --------------------------------------------------------------------------------- */
+/* Constructors & Destructors                                                        */
+/* --------------------------------------------------------------------------------- */
 Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(port), _password(password) {
 	//	open socket
 	_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -44,6 +47,9 @@ Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(
 
 Server::~Server() {}
 
+/* --------------------------------------------------------------------------------- */
+/* Getters & Setters                                                                 */
+/* --------------------------------------------------------------------------------- */
 // returns the host
 std::string Server::GetHost() const {
 	return _host;
@@ -69,10 +75,13 @@ std::vector<pollfd> Server::GetPollFds() const {
 	return _pollFds;
 }
 
+/* --------------------------------------------------------------------------------- */
+/* Run                                                                               */
+/* --------------------------------------------------------------------------------- */
 // runs the server
 void Server::Run() {
 //	start listening
-	if (listen(_socket, SOMAXCONN) < 0) {
+	if (listen(_socket, MAX_CONNECTIONS) < 0) {
 		close(_socket);
 		throw std::runtime_error("Failed to listen");
 	}
@@ -114,8 +123,11 @@ void Server::Run() {
 	}
 }
 
+/* --------------------------------------------------------------------------------- */
+/* Connection Handling                                                               */
+/* --------------------------------------------------------------------------------- */
 // handles a new connection
-void Server::HandleNewConnection(int clientSocket) {
+void Server::HandleNewConnection() {
 //	sockaddr_in clientAddr;
 //	int clientFd = accept(_socket, &clientAddr, nullptr);
 	int clientFd = accept(_socket, nullptr, nullptr);
@@ -126,21 +138,32 @@ void Server::HandleNewConnection(int clientSocket) {
 
 		Client client;
 		_clients.insert({ clientFd, client });
+
+		std::cout << "New connection from " << clientFd << std::endl;
 	}
 }
 
 // handles a connection
 void Server::HandleConnection(int clientSocket) {
-	(void)clientSocket;
-	std::cout << "Handling connection" << std::endl;
-//	TODO: implement
-//	verify password
-
-//	read message
-//	parse message
-//	handle message
-//	send response
-//	close connection
+	char buffer[MAX_BUFFER_SIZE];
+	std::memset(buffer, 0, MAX_BUFFER_SIZE);
+	ssize_t bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+	if (bytesRead > 0) {
+//		buffer[bytesRead] = '\0';
+		std::string msg(buffer);
+		std::cout << "Received msg on socket " << clientSocket << ": " << msg << std::endl;
+		// TODO: implement
+		// verify password
+		// read message
+		// parse message
+		// handle message
+		// send response
+		// close connection
+	} else if (bytesRead == 0) {
+		HandleDisconnection(clientSocket);
+	} else {
+		std::cerr << "Error reading from client socket" << std::endl;
+	}
 }
 
 // handles a disconnection
