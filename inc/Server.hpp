@@ -93,6 +93,13 @@ class Server {
 		std::map<Method, void (Server::*)(int, const std::vector<std::string>)> _methods;
 //		instance of parser class
 //		Parser _parser;
+
+//		mode sub commands
+		void _changeInviteOnlyRestriction();
+		void _changeTopicRestriction();
+		void _changePasswordRestriction();
+		void _changeOperatorPrivileges();
+		void _changeUserLimitRestriction();
 };
 
 

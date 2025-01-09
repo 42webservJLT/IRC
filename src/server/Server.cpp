@@ -323,9 +323,22 @@ void Server::Invite(int clientSocket, const std::vector<std::string> tokens) {
 
 // sets the topic of a channel
 void Server::Topic(int clientSocket, const std::vector<std::string> tokens) {
-	(void) clientSocket;
-	(void) tokens;
-//	TODO: implement
+	if (tokens.size() != 3) {
+		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+		return;
+	}
+//	check whether channel exists
+	if (_channels.find(tokens[1]) != _channels.end()) {
+		auto channel = _channels[tokens[1]];
+//		check whether user is operator
+		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
+			channel.SetTopic(tokens[2]);
+		} else {
+			send(clientSocket, ERR_MSG_NOT_A_CHANNEL_OPERATOR, std::string(ERR_MSG_NOT_A_CHANNEL_OPERATOR).size(), 0);
+		}
+	} else {
+		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
+	}
 }
 
 // sets the mode of a channel
