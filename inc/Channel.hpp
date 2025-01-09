@@ -16,7 +16,6 @@ class Channel {
 
 //		TODO: implement
 		std::string GetName() const;
-//		std::string GetPassword() const;
 		std::string GetTopic() const;
 		bool GetInviteOnly() const;
 		size_t GetUserLimit() const;
@@ -49,6 +48,8 @@ class Channel {
 		std::vector<Client> _operators;
 		std::vector<Client> _users;
 		std::vector<Client> _invited;
+//		TODO: implement
+		std::string GetPassword() const; // (from channel
 };
 
 
