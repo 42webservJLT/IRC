@@ -354,48 +354,52 @@ void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
 		auto channel = _channels[tokens[1];
 //		check whether user is operator
 		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
-			for (size_t i = 2; i < tokens.size(); i++) {
+			try {
 				Mode mode = _strToModeEnum(tokens[i]);
 				switch (mode) {
 					case MAKE_INVITE_ONLY:
-						_changeInviteOnlyRestriction();
+						_changeInviteOnlyRestriction(tokens[1], true);
 						break;
 					case UNMAKE_INVITE_ONLY:
-						_changeInviteOnlyRestriction();
+						_changeInviteOnlyRestriction(tokens[1], false);
 						break;
 					case MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
-						_changeTopicRestriction();
+						_changeTopicRestriction(tokens[1], true);
 						break;
 					case UNMAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
-						_changeTopicRestriction();
+						_changeTopicRestriction(tokens[1], false);
 						break;
 					case GIVE_OPERATOR_PRIVILEGES:
-						_changeOperatorPrivileges();
+						_changeOperatorPrivileges(tokens[1], tokens[2], true);
 						break;
 					case TAKE_OPERATOR_PRIVILEGES:
-						_changeOperatorPrivileges();
+						_changeOperatorPrivileges(tokens[1], tokens[2], false);
 						break;
 					case SET_USER_LIMIT:
-						_changeUserLimitRestriction();
+						_changeUserLimitRestriction(tokens[1], std::stoul(tokens[2]));
 						break;
 					case UNSET_USER_LIMIT:
-						_changeUserLimitRestriction();
+						_changeUserLimitRestriction(tokens[1], NO_USER_LIMIT);
 						break;
 					case SET_PASSWORD:
-						_changePasswordRestriction();
+						_changePasswordRestriction(tokens[1], tokens[2]);
 						break;
 					case UNSET_PASSWORD:
-						_changePasswordRestriction();
+						_changePasswordRestriction(tokens[1], "");
 						break;
 					default:
 						send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 						break;
 				}
+			} catch (std::exception &e) {
+				send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 			}
 		} else {
 			send(clientSocket, ERR_MSG_NOT_A_CHANNEL_OPERATOR, std::string(ERR_MSG_NOT_A_CHANNEL_OPERATOR).size(), 0);
 		}
-
+	} else {
+		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
+	}
 }
 
 //	changes the invite only restriction of a channel
@@ -404,10 +408,28 @@ void Server::_changeInviteOnlyRestriction(std::string channel, bool isInviteOnly
 }
 
 // changes the topic restriction of a channel
-void Server::_changeTopicRestriction();
-void Server::_changePasswordRestriction();
-void Server::_changeOperatorPrivileges();
-void Server::_changeUserLimitRestriction();
+void Server::_changeTopicRestriction(std::string channel, bool isTopicOnlySettableByOperator) {
+	_channels[channel].SetTopicOnlySettableByOperator(mode);
+}
+
+// changes the password restriction of a channel
+void Server::_changePasswordRestriction(std::string channel, std::string password) {
+	_channels[channel].SetPassword(password);
+}
+
+// changes the operator privileges of a channel
+void Server::_changeOperatorPrivileges(std::string channel, std::string user, bool isOperator) {
+	if (isOperator) {
+		_channels[channel].MakeOperator(user);
+	} else {
+		_channels[channel].RemoveOperator(user);
+	}
+}
+
+// changes the user limit restriction of a channel
+void Server::_changeUserLimitRestriction(std::string channel, size_t userLimit) {
+	_channels[channel].SetUserLimit(userLimit);
+}
 
 Mode _strToModeEnum(std::string str) {
 	if (str == "+i") {
