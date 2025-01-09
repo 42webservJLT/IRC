@@ -15,5 +15,6 @@ std::tuple<Method, std::vector<std::string>&> Parser::parse(std::string& msg) co
     Method method = INVALID;
     // Get first token (command)
     if (std::getline(tokenStream, token, ' ')) {
-    }
+        // Convert to uppercase for case-insensitive comparison
+        std::transform(token.begin(), token.end(), token.begin(), ::toupper);
 }
