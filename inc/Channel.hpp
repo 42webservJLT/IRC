@@ -42,6 +42,7 @@ class Channel {
 		std::string _password;
 		std::string _topic;
 		bool _inviteOnly;
+		bool _topicOnlySettableByOperator;
 		size_t _userLimit;
 		std::vector<std::string> _messages;
 

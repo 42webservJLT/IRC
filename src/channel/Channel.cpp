@@ -8,7 +8,7 @@
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
 
-Channel::Channel() : _name(""), _password(""), _topic(""), _inviteOnly(false), _userLimit(0) {}
+Channel::Channel() : _name(""), _password(""), _topic(""), _inviteOnly(false), _topicOnlySettableByOperator(false) {}
 
 Channel::~Channel() {}
 
