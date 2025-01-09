@@ -28,4 +28,10 @@ std::tuple<Method, std::vector<std::string>&> Parser::parse(std::string& msg) co
         else if (token == "TOPIC") method = TOPIC;
         else if (token == "MODE") method = MODE;
         else method = INVALID;
+
+    while (std::getline(tokenStream, token, ' ')) {
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+    }
 }
