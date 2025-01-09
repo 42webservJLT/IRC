@@ -239,22 +239,26 @@ void Server::User(int clientSocket, const std::vector<std::string> tokens) {
 void Server::Join(int clientSocket, const std::vector<std::string> tokens) {
 	if (tokens.size() != 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
-	} else {
-//		check whether channel exists
-		if (_channels.find(tokens[1]) != _channels.end()) {
+		return;
+	}
+//	check whether channel exists
+	if (_channels.find(tokens[1]) != _channels.end()) {
+		auto channel = _channels[tokens[1]];
+//		check whether user limit is reached; 0 means no limit
+		if ((channel.GetUserLimit() > NO_USER_LIMIT && channel.GetUsers().size() <
+		channel.GetUserLimit()) || channel.GetUserLimit() == NO_USER_LIMIT) {
 //			check whether channel is invite only or if client is invited
-			if (!_channels[tokens[1]].GetInviteOnly() || _channels[tokens[1]].GetInvited().find) {
-//				check whether user limit is reached
-				if (_channels[tokens[1]].GetUserLimit() > 0 && _channels[tokens[1]].GetUsers().size() <
-				_channels[tokens[1]].GetUserLimit()) {
-					_channels[tokens[1]].AddUser(_clients[clientSocket].GetNickName());
-				} else {
-					send(clientSocket, ERR_MSG_CHANNEL_FULL, std::string(ERR_MSG_CHANNEL_FULL).size(), 0);
-				}
+			if (!channel.GetInviteOnly()) {
+					channel.AddUser(_clients[clientSocket].GetNickName());
+			} else if (channel.GetInvited().find(_clients[clientSocket].GetNickName()) != channel.GetInvited().end()){
+				channel.AddUser(_clients[clientSocket].GetNickName());
+				channel.GetInvited().erase(_clients[clientSocket].GetNickName());
+			} else {
+				send(clientSocket, ERR_MSG_CHANNEL_NOT_INVITED, std::string(ERR_MSG_CHANNEL_NOT_INVITED).size(), 0);
 			}
-		} else {
-			send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
 		}
+	} else {
+		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
 	}
 }
 

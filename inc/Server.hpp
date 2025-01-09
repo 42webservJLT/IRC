@@ -21,9 +21,12 @@
 
 #define MAX_BUFFER_SIZE 1024
 #define MAX_CONNECTIONS SOMAXCONN
+#define NO_USER_LIMIT 0
 
 #define ERR_MSG_UNAUTHENTICATED "You are not authenticated yet\n"
 #define ERR_MSG_INVALID_COMMAND "Invalid command\n"
+#define ERR_MSG_CHANNEL_NOT_FOUND "Channel not found\n"
+#define ERR_MSG_CHANNEL_NOT_INVITED "You are not invited to this channel\n"
 
 typedef enum {
 	AUTHENTICATE,
