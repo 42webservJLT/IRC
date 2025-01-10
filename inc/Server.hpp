@@ -18,6 +18,7 @@
 #include <map>
 #include "Client.hpp"
 #include "Channel.hpp"
+#include "Parser.hpp"
 
 #define MAX_BUFFER_SIZE 1024
 #define MAX_CONNECTIONS SOMAXCONN
