@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <vector>
 #include <map>
+#include <algorithm>
 #include "Client.hpp"
 #include "Channel.hpp"
 #include "Parser.hpp"
@@ -81,14 +82,14 @@ class Server {
 //		mapping of method to function
 		std::map<Method, void (Server::*)(int, const std::vector<std::string>)> _methods;
 //		instance of parser class
-//		Parser _parser;
+		Parser _parser;
 
 //		mode sub commands
-		void _changeInviteOnlyRestriction();
-		void _changeTopicRestriction();
-		void _changePasswordRestriction();
-		void _changeOperatorPrivileges();
-		void _changeUserLimitRestriction();
+		void Server::_changeInviteOnlyRestriction(std::string channel, bool isInviteOnly);
+		void Server::_changeTopicRestriction(std::string channel, bool isTopicOnlySettableByOperator);
+		void Server::_changePasswordRestriction(std::string channel, std::string password);
+		void Server::_changeOperatorPrivileges(std::string channel, std::string user, bool isOperator);
+		void Server::_changeUserLimitRestriction(std::string channel, size_t userLimit);
 };
 
 

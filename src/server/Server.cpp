@@ -252,9 +252,10 @@ void Server::Join(int clientSocket, const std::vector<std::string> tokens) {
 //			check whether channel is invite only or if client is invited
 			if (!channel.GetInviteOnly()) {
 					channel.AddUser(_clients[clientSocket].GetNickName());
-			} else if (channel.GetInvited().find(_clients[clientSocket].GetNickName()) != channel.GetInvited().end()){
+			} else if (std::find(channel.GetInvited().begin(), channel.GetInvited().end(), _clients[clientSocket].GetNickName()) != channel.GetInvited().end()) {
 				channel.AddUser(_clients[clientSocket].GetNickName());
-				channel.GetInvited().erase(_clients[clientSocket].GetNickName());
+				auto invited = channel.GetInvited();
+				invited.erase(std::remove(invited.begin(), invited.end(), _clients[clientSocket].GetNickName()), invited.end());
 			} else {
 				send(clientSocket, ERR_MSG_CHANNEL_NOT_INVITED, std::string(ERR_MSG_CHANNEL_NOT_INVITED).size(), 0);
 			}
@@ -286,9 +287,9 @@ void Server::Kick(int clientSocket, const std::vector<std::string> tokens) {
 	if (_channels.find(tokens[1]) != _channels.end()) {
 		auto channel = _channels[tokens[1]];
 //		check whether user is operator
-		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
+		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), _clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
 //			check whether user is in channel
-			if (channel.GetUsers().find(tokens[2]) != channel.GetUsers().end()) {
+			if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), tokens[2]) != channel.GetUsers().end()) {
 				channel.RemoveUser(tokens[2]);
 			} else {
 				send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
@@ -311,8 +312,9 @@ void Server::Invite(int clientSocket, const std::vector<std::string> tokens) {
 	if (_channels.find(tokens[1]) != _channels.end()) {
 		auto channel = _channels[tokens[1]];
 //		check whether user is operator
-		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
-			channel.GetInvited().insert(tokens[2]);
+		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), _clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
+			std::vector<Client>& invited = channel.GetInvited();
+			invited.push_back(tokens[2]);
 			std::string msg = INVITED_MSG(tokens[1], tokens[2]);
 			send(clientSocket, msg.c_str(), msg.size(), 0);
 		} else {
@@ -351,7 +353,7 @@ void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
 	}
 //	check whether channel exists
 	if (_channels.find(tokens[1]) != _channels.end()) {
-		auto channel = _channels[tokens[1];
+		auto channel = _channels[tokens[1]];
 //		check whether user is operator
 		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
 			try {
