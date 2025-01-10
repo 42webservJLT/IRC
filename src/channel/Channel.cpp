@@ -15,7 +15,6 @@ Channel::~Channel() {}
 /* --------------------------------------------------------------------------------- */
 /* Getters & Setters                                                                 */
 /* --------------------------------------------------------------------------------- */
-
 // returns the name of the channel
 std::string Channel::GetName() const {
 	return _name;
