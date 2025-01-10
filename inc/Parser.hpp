@@ -8,8 +8,9 @@
 #include <string>
 #include <vector>
 #include "Client.hpp"
+#include "Enums.hpp"
 
-class Channel {
+class Parser {
 	public:
 		Parser();
 		~Parser();
