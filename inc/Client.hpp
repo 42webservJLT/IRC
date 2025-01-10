@@ -7,14 +7,7 @@
 
 #include <string>
 #include <vector>
-
-
-typedef enum {
-//	client is connected, but not yet authenticated
-	CONNECTED,
-//	client is connected & authenticated
-	AUTHENTICATED,
-} ClientState;
+#include "Enums.hpp
 
 class Client {
 	public:
