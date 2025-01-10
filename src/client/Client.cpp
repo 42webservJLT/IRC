@@ -14,6 +14,7 @@ Client::~Client() {}
 /* --------------------------------------------------------------------------------- */
 /* Getters & Setters                                                                 */
 /* --------------------------------------------------------------------------------- */
+
 // returns the username of the client
 std::string Client::GetUserName() const {
 	return _userName;
