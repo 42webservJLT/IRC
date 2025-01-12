@@ -59,7 +59,7 @@ Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(
 	_methods.insert({INVALID, nullptr});
 
 //	initialize parser
-//	_parser = Parser();
+	_parser = Parser();
 }
 
 Server::~Server() {}
@@ -178,15 +178,14 @@ void Server::HandleConnection(int clientSocket) {
 				send(clientSocket, ERR_MSG_UNAUTHENTICATED, std::string(ERR_MSG_UNAUTHENTICATED).size(), 0);
 				return;
 			}
-//			TODO: implement
 //			parse message
-//			std::tuple<Method, std::vector<std::string>&> vals = _parser.Parse(clientBuffer);
+			std::tuple<Method, std::vector<std::string>&> vals = _parser.parse(clientBuffer);
 //			handle message
-//			if (std::get<0>(vals) == INVALID) {
-//				send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
-//				return;
-//			}
-//			(this->*_methods[std::get<0>(vals)])(clientSocket, std::get<1>(vals));
+			if (std::get<0>(vals) == INVALID) {
+				send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+				return;
+			}
+			(this->*_methods[std::get<0>(vals)])(clientSocket, std::get<1>(vals));
 //			clear buffer
 			std::cout << clientBuffer << std::endl;
 			clientBuffer.clear();
