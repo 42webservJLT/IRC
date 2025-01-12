@@ -211,7 +211,7 @@ void Server::HandleDisconnection(int clientSocket) {
 /* --------------------------------------------------------------------------------- */
 // authenticates a client
 void Server::Authenticate(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() != 2 || tokens[1] != GetPassword()) {
+	if (tokens.size() != 1 || tokens[0] != GetPassword()) {
 		send(clientSocket, ERR_MSG_UNAUTHENTICATED, std::string(ERR_MSG_UNAUTHENTICATED).size(), 0);
 	} else {
 		_clients[clientSocket].SetAuthenticated(true);
@@ -220,34 +220,34 @@ void Server::Authenticate(int clientSocket, const std::vector<std::string> token
 
 // sets the nickname of a client
 void Server::Nick(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() != 2) {
+	if (tokens.size() != 1) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 	} else {
-		_clients[clientSocket].SetNickName(tokens[1]);
+		_clients[clientSocket].SetNickName(tokens[0]);
 	}
 }
 
 // sets the username of a client
 void Server::User(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() != 2) {
+	if (tokens.size() != 1) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 	} else {
-		_clients[clientSocket].SetUserName(tokens[1]);
+		_clients[clientSocket].SetUserName(tokens[0]);
 	}
 }
 
 // joins a channel
 void Server::Join(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() != 2) {
+	if (tokens.size() != 1) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
 	}
 //	check whether channel exists
-	if (_channels.find(tokens[1]) != _channels.end()) {
-		auto channel = _channels[tokens[1]];
+	if (_channels.find(tokens[0]) != _channels.end()) {
+		auto channel = _channels[tokens[0]];
 //		check whether user limit is reached; 0 means no limit
 		if ((channel.GetUserLimit() > NO_USER_LIMIT && channel.GetUsers().size() <
-		channel.GetUserLimit()) || channel.GetUserLimit() == NO_USER_LIMIT) {
+			channel.GetUserLimit()) || channel.GetUserLimit() == NO_USER_LIMIT) {
 //			check whether channel is invite only or if client is invited
 			if (!channel.GetInviteOnly()) {
 					channel.AddUser(_clients[clientSocket].GetNickName());
@@ -278,18 +278,18 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string> tokens) {
 /* --------------------------------------------------------------------------------- */
 // kicks a user from a channel
 void Server::Kick(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() != 3) {
+	if (tokens.size() != 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
 	}
 //	check whether channel exists
-	if (_channels.find(tokens[1]) != _channels.end()) {
-		auto channel = _channels[tokens[1]];
+	if (_channels.find(tokens[0]) != _channels.end()) {
+		auto channel = _channels[tokens[0]];
 //		check whether user is operator
 		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), _clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
 //			check whether user is in channel
-			if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), tokens[2]) != channel.GetUsers().end()) {
-				channel.RemoveUser(tokens[2]);
+			if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), tokens[1]) != channel.GetUsers().end()) {
+				channel.RemoveUser(tokens[1]);
 			} else {
 				send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
 			}
@@ -303,18 +303,18 @@ void Server::Kick(int clientSocket, const std::vector<std::string> tokens) {
 
 // invites a user to a channel
 void Server::Invite(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() != 3) {
+	if (tokens.size() != 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
 	}
 //	check whether channel exists
-	if (_channels.find(tokens[1]) != _channels.end()) {
-		auto channel = _channels[tokens[1]];
+	if (_channels.find(tokens[0]) != _channels.end()) {
+		auto channel = _channels[tokens[0]];
 //		check whether user is operator
 		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), _clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
 			std::vector<Client>& invited = channel.GetInvited();
-			invited.push_back(tokens[2]);
-			std::string msg = INVITED_MSG(tokens[1], tokens[2]);
+			invited.push_back(tokens[1]);
+			std::string msg = INVITED_MSG(tokens[0], tokens[1]);
 			send(clientSocket, msg.c_str(), msg.size(), 0);
 		} else {
 			send(clientSocket, ERR_MSG_NOT_A_CHANNEL_OPERATOR, std::string(ERR_MSG_NOT_A_CHANNEL_OPERATOR).size(), 0);
@@ -326,16 +326,16 @@ void Server::Invite(int clientSocket, const std::vector<std::string> tokens) {
 
 // sets the topic of a channel
 void Server::Topic(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() != 3) {
+	if (tokens.size() != 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
 	}
 //	check whether channel exists
-	if (_channels.find(tokens[1]) != _channels.end()) {
-		auto channel = _channels[tokens[1]];
+	if (_channels.find(tokens[0]) != _channels.end()) {
+		auto channel = _channels[tokens[0]];
 //		check whether user is operator
 		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
-			channel.SetTopic(tokens[2]);
+			channel.SetTopic(tokens[1]);
 		} else {
 			send(clientSocket, ERR_MSG_NOT_A_CHANNEL_OPERATOR, std::string(ERR_MSG_NOT_A_CHANNEL_OPERATOR).size(), 0);
 		}
@@ -346,47 +346,47 @@ void Server::Topic(int clientSocket, const std::vector<std::string> tokens) {
 
 // sets the mode of a channel
 void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() < 3) {
+	if (tokens.size() < 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
 	}
 //	check whether channel exists
-	if (_channels.find(tokens[1]) != _channels.end()) {
-		auto channel = _channels[tokens[1]];
+	if (_channels.find(tokens[0]) != _channels.end()) {
+		auto channel = _channels[tokens[0]];
 //		check whether user is operator
 		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
 			try {
 				Mode mode = _strToModeEnum(tokens[i]);
 				switch (mode) {
 					case MAKE_INVITE_ONLY:
-						_changeInviteOnlyRestriction(tokens[1], true);
+						_changeInviteOnlyRestriction(tokens[0], true);
 						break;
 					case UNMAKE_INVITE_ONLY:
-						_changeInviteOnlyRestriction(tokens[1], false);
+						_changeInviteOnlyRestriction(tokens[0], false);
 						break;
 					case MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
-						_changeTopicRestriction(tokens[1], true);
+						_changeTopicRestriction(tokens[0], true);
 						break;
 					case UNMAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
-						_changeTopicRestriction(tokens[1], false);
+						_changeTopicRestriction(tokens[0], false);
 						break;
 					case GIVE_OPERATOR_PRIVILEGES:
-						_changeOperatorPrivileges(tokens[1], tokens[2], true);
+						_changeOperatorPrivileges(tokens[0], tokens[1], true);
 						break;
 					case TAKE_OPERATOR_PRIVILEGES:
-						_changeOperatorPrivileges(tokens[1], tokens[2], false);
+						_changeOperatorPrivileges(tokens[0], tokens[1], false);
 						break;
 					case SET_USER_LIMIT:
-						_changeUserLimitRestriction(tokens[1], std::stoul(tokens[2]));
+						_changeUserLimitRestriction(tokens[0], std::stoul(tokens[1]));
 						break;
 					case UNSET_USER_LIMIT:
-						_changeUserLimitRestriction(tokens[1], NO_USER_LIMIT);
+						_changeUserLimitRestriction(tokens[0], NO_USER_LIMIT);
 						break;
 					case SET_PASSWORD:
-						_changePasswordRestriction(tokens[1], tokens[2]);
+						_changePasswordRestriction(tokens[0], tokens[1]);
 						break;
 					case UNSET_PASSWORD:
-						_changePasswordRestriction(tokens[1], "");
+						_changePasswordRestriction(tokens[0], "");
 						break;
 					default:
 						send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
