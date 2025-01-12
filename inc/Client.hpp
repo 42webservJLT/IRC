@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-#include "Enums.hpp
+#include "Enums.hpp"
 
 class Client {
 	public:
