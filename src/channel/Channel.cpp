@@ -41,22 +41,22 @@ size_t Channel::GetUserLimit() const {
 }
 
 // returns the messages of the channel
-std::vector<std::string> Channel::GetMessages() const {
+std::vector<std::string>& Channel::GetMessages() {
 	return _messages;
 }
 
 // returns the operators of the channel
-std::vector<Client> Channel::GetOperators() const {
+std::vector<Client&>& Channel::GetOperators() {
 	return _operators;
 }
 
 // returns the users of the channel
-std::vector<Client> Channel::GetUsers() const {
+std::vector<Client&>& Channel::GetUsers() {
 	return _users;
 }
 
 // returns the invited users of the channel
-std::vector<Client> Channel::GetInvited() const {
+std::vector<Client&>& Channel::GetInvited() {
 	return _invited;
 }
 
@@ -86,36 +86,33 @@ void Channel::SetUserLimit(size_t userLimit) {
 }
 
 // adds a user to the channel
-void Channel::AddUser(std::string user) {
-	Client client;
-	client.SetUserName(user);
-	_users.push_back(client);
+void Channel::AddUser(int user) {
+	_users.push_back(user);
 }
 
 // makes a user operator of the channel
-void Channel::MakeOperator(std::string user) {
-	Client client;
-	client.SetUserName(user);
-	_operators.push_back(client);
+void Channel::MakeOperator(int user) {
+	// TODO: check whether operator needs to have been a user first
+	_operators.push_back(user);
 }
 
 // removes operator status from a user
-void Channel::RemoveOperator(std::string user) {
-	for (size_t i = 0; i < _operators.size(); i++) {
-		if (_operators[i].GetUserName() == user) {
-			_operators.erase(_operators.begin() + i);
-			break;
-		}
+void Channel::RemoveOperator(const int user) {
+	auto it = std::find_if(_operators.begin(), _operators.end(), [user](const Client& c) {
+		return c.GetUserId() == user;
+	});
+	if (it != _operators.end()) {
+		_operators.erase(it);
 	}
 }
 
 // removes a user from the channel
-void Channel::RemoveUser(std::string user) {
-	for (size_t i = 0; i < _users.size(); i++) {
-		if (_users[i].GetUserName() == user) {
-			_users.erase(_users.begin() + i);
-			break;
-		}
+void Channel::RemoveUser(const int user) {
+	auto it = std::find_if(_users.begin(), _users.end(), [&](const Client& c) {
+		return c.GetUserName() == user;
+	});
+	if (it != _users.end()) {
+		_users.erase(it);
 	}
 }
 

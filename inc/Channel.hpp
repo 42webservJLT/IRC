@@ -20,10 +20,10 @@ class Channel {
 		std::string GetTopic() const;
 		bool GetInviteOnly() const;
 		size_t GetUserLimit() const;
-		std::vector<std::string> GetMessages() const;
-		std::vector<Client> GetOperators() const;
-		std::vector<Client> GetUsers() const;
-		std::vector<Client> GetInvited() const;
+		std::vector<std::string>& GetMessages();
+		std::vector<int>& GetOperators();
+		std::vector<int>& GetUsers();
+		std::vector<int>& GetInvited();
 
 		void SetName(std::string name);
 		void SetPassword(std::string password);
@@ -31,10 +31,10 @@ class Channel {
 		void SetInviteOnly(bool inviteOnly);
 		void SetUserLimit(size_t userLimit);
 
-		void AddUser(std::string user);
-		void MakeOperator(std::string user);
-		void RemoveOperator(std::string user);
-		void RemoveUser(std::string user);
+		void AddUser(int user);
+		void MakeOperator(int user);
+		void RemoveOperator(int user);
+		void RemoveUser(int user);
 //		TODO: end
 
 	private:
@@ -46,9 +46,10 @@ class Channel {
 		size_t _userLimit;
 		std::vector<std::string> _messages;
 
-		std::vector<Client> _operators;
-		std::vector<Client> _users;
-		std::vector<Client> _invited;
+//		use the fd of the client instead of the client itself
+		std::vector<int> _operators;
+		std::vector<int> _users;
+		std::vector<int> _invited;
 //		TODO: implement
 		std::string GetPassword() const; // (from channel
 };
