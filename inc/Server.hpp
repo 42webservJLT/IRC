@@ -85,11 +85,11 @@ class Server {
 		Parser _parser;
 
 //		mode sub commands
-		void Server::_changeInviteOnlyRestriction(std::string channel, bool isInviteOnly);
-		void Server::_changeTopicRestriction(std::string channel, bool isTopicOnlySettableByOperator);
-		void Server::_changePasswordRestriction(std::string channel, std::string password);
-		void Server::_changeOperatorPrivileges(std::string channel, std::string user, bool isOperator);
-		void Server::_changeUserLimitRestriction(std::string channel, size_t userLimit);
+		void _changeInviteOnlyRestriction(std::string channel, bool isInviteOnly);
+		void _changeTopicRestriction(std::string channel, bool isTopicOnlySettableByOperator);
+		void _changePasswordRestriction(std::string channel, std::string password);
+		void _changeOperatorPrivileges(std::string channel, std::string user, bool isOperator);
+		void _changeUserLimitRestriction(std::string channel, size_t userLimit);
 };
 
 
