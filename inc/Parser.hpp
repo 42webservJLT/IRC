@@ -15,9 +15,7 @@ class Parser {
 		Parser();
 		~Parser();
 
-//		TODO: implement
 		std::tuple<Method, std::vector<std::string>&> parse(std::string& msg) const;
-//		TODO: end
 
 	private:
 };
