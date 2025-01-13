@@ -123,7 +123,12 @@ void Server::Run() {
 						HandleNewConnection();
 					} else {
 //						old client connection
-						HandleConnection(it->fd);
+						try {
+							HandleConnection(it->fd);
+						} catch (std::exception &e) {
+							std::cerr << e.what() << std::endl;
+							HandleDisconnection(it->fd);
+						}
 					}
 					break;
 				case POLLHUP:
@@ -170,7 +175,7 @@ void Server::HandleConnection(int clientSocket) {
 		clientBuffer.append(msg);
 
 //		for real irc client, check for \r\n instead!
-		if (msg.find("\n") != std::string::npos) {
+		if (msg.find("\r\n") != std::string::npos) {
 //			verify authenticated
 			if (!_clients[clientSocket].GetAuthenticated()) {
 				send(clientSocket, ERR_MSG_UNAUTHENTICATED, std::string(ERR_MSG_UNAUTHENTICATED).size(), 0);
@@ -191,7 +196,7 @@ void Server::HandleConnection(int clientSocket) {
 	} else if (bytesRead == 0) {
 		HandleDisconnection(clientSocket);
 	} else {
-		std::cerr << "Error reading from client socket" << std::endl;
+		throw std::runtime_error("Failed to receive message");
 	}
 }
 
