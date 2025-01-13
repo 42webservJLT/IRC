@@ -359,7 +359,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string> tokens) {
 
 // sets the mode of a channel
 void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() < 2) {
+	if (tokens.size() < 1) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
 	}
@@ -372,33 +372,63 @@ void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
 				enum Mode mode = _strToModeEnum(tokens[0]);
 				switch (mode) {
 					case MAKE_INVITE_ONLY:
+						if (tokens.size() != 1) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changeInviteOnlyRestriction(tokens[0], true);
 						break;
 					case UNMAKE_INVITE_ONLY:
+						if (tokens.size() != 1) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changeInviteOnlyRestriction(tokens[0], false);
 						break;
 					case MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
+						if (tokens.size() != 1) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changeTopicRestriction(tokens[0], true);
 						break;
 					case UNMAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
+						if (tokens.size() != 1) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changeTopicRestriction(tokens[0], false);
 						break;
 					case GIVE_OPERATOR_PRIVILEGES:
+						if (tokens.size() != 2) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changeOperatorPrivileges(tokens[0], tokens[1], true);
 						break;
 					case TAKE_OPERATOR_PRIVILEGES:
+						if (tokens.size() != 2) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changeOperatorPrivileges(tokens[0], tokens[1], false);
 						break;
 					case SET_USER_LIMIT:
+						if (tokens.size() != 2) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changeUserLimitRestriction(tokens[0], std::stoul(tokens[1]));
 						break;
 					case UNSET_USER_LIMIT:
+						if (tokens.size() != 1) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changeUserLimitRestriction(tokens[0], NO_USER_LIMIT);
 						break;
 					case SET_PASSWORD:
+						if (tokens.size() != 2) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changePasswordRestriction(tokens[0], tokens[1]);
 						break;
 					case UNSET_PASSWORD:
+						if (tokens.size() != 1) {
+							throw std::runtime_error("Invalid command");
+						}
 						_changePasswordRestriction(tokens[0], "");
 						break;
 					default:
