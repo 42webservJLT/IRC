@@ -9,13 +9,16 @@
 #include <vector>
 #include "Client.hpp"
 #include "Enums.hpp"
+#include <tuple>
+#include <algorithm>
+#include <sstream>
 
 class Parser {
 	public:
 		Parser();
 		~Parser();
 
-		std::tuple<Method, std::vector<std::string>&> parse(std::string& msg) const;
+		std::tuple<Method, std::vector<std::string>> parse(std::string& msg) const;
 
 	private:
 };

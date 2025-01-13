@@ -177,7 +177,7 @@ void Server::HandleConnection(int clientSocket) {
 				return;
 			}
 //			parse message
-			std::tuple<Method, std::vector<std::string>&> vals = _parser.parse(clientBuffer);
+			std::tuple<Method, std::vector<std::string>> vals = _parser.parse(clientBuffer);
 //			handle message
 			if (std::get<0>(vals) == INVALID) {
 				send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
