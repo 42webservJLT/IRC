@@ -13,6 +13,6 @@ make start
 
 Add server in weechat
 ```weechat
-/server add irc docker.host.internal/6667 -notls
+/server add irc  host.docker.internal/6667 -notls
 /connect irc -password=abc
 ```
