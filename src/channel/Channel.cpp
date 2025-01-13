@@ -46,17 +46,17 @@ std::vector<std::string>& Channel::GetMessages() {
 }
 
 // returns the operators of the channel
-std::vector<Client&>& Channel::GetOperators() {
+std::vector<int>& Channel::GetOperators() {
 	return _operators;
 }
 
 // returns the users of the channel
-std::vector<Client&>& Channel::GetUsers() {
+std::vector<int>& Channel::GetUsers() {
 	return _users;
 }
 
 // returns the invited users of the channel
-std::vector<Client&>& Channel::GetInvited() {
+std::vector<int>& Channel::GetInvited() {
 	return _invited;
 }
 
