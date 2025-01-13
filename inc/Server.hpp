@@ -32,6 +32,7 @@
 #define ERR_MSG_CHANNEL_NOT_INVITED "You are not invited to this channel\n"
 #define ERR_MSG_CHANNEL_FULL "Channel is full\n"
 #define ERR_MSG_NOT_A_CHANNEL_OPERATOR "You are not a channel operator\n"
+#define ERR_MSG_USER_NOT_FOUND "User not found\n"
 #define ERR_MSG_USER_NOT_IN_CHANNEL "User is not in channel\n"
 
 #define INVITED_MSG(channel, user) "You have been invited to channel " + channel + "\n"
