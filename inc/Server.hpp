@@ -90,6 +90,7 @@ class Server {
 		void _changePasswordRestriction(std::string channel, std::string password);
 		void _changeOperatorPrivileges(std::string channel, std::string user, bool isOperator);
 		void _changeUserLimitRestriction(std::string channel, size_t userLimit);
+		int _findClientFromNickname(std::string nickname);
 };
 
 
