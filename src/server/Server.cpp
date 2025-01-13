@@ -4,8 +4,6 @@
 
 #include "Server.hpp"
 
-Mode _strToModeEnum(std::string str);
-
 /* --------------------------------------------------------------------------------- */
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
@@ -356,36 +354,35 @@ void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
 //		check whether user is operator
 		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
 			try {
-				Mode mode = _strToModeEnum(tokens[i]);
-				switch (mode) {
-					case MAKE_INVITE_ONLY:
+				switch (tokens[0].c_str()) {
+					case "+i":
 						_changeInviteOnlyRestriction(tokens[0], true);
 						break;
-					case UNMAKE_INVITE_ONLY:
+					case "-i":
 						_changeInviteOnlyRestriction(tokens[0], false);
 						break;
-					case MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
+					case "+t":
 						_changeTopicRestriction(tokens[0], true);
 						break;
-					case UNMAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
+					case "-t":
 						_changeTopicRestriction(tokens[0], false);
 						break;
-					case GIVE_OPERATOR_PRIVILEGES:
+					case "+o":
 						_changeOperatorPrivileges(tokens[0], tokens[1], true);
 						break;
-					case TAKE_OPERATOR_PRIVILEGES:
+					case "-o":
 						_changeOperatorPrivileges(tokens[0], tokens[1], false);
 						break;
-					case SET_USER_LIMIT:
+					case "+l":
 						_changeUserLimitRestriction(tokens[0], std::stoul(tokens[1]));
 						break;
-					case UNSET_USER_LIMIT:
+					case "-l":
 						_changeUserLimitRestriction(tokens[0], NO_USER_LIMIT);
 						break;
-					case SET_PASSWORD:
+					case "+k":
 						_changePasswordRestriction(tokens[0], tokens[1]);
 						break;
-					case UNSET_PASSWORD:
+					case "-k":
 						_changePasswordRestriction(tokens[0], "");
 						break;
 					default:
@@ -431,30 +428,3 @@ void Server::_changeOperatorPrivileges(std::string channel, std::string user, bo
 void Server::_changeUserLimitRestriction(std::string channel, size_t userLimit) {
 	_channels[channel].SetUserLimit(userLimit);
 }
-
-Mode _strToModeEnum(std::string str) {
-	if (str == "+i") {
-		return MAKE_INVITE_ONLY;
-	} else if (str == "-i") {
-		return UNMAKE_INVITE_ONLY;
-	} else if (str == "+t") {
-		return MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR;
-	} else if (str == "-t") {
-		return UNMAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR;
-	} else if (str == "+o") {
-		return GIVE_OPERATOR_PRIVILEGES;
-	} else if (str == "-o") {
-		return TAKE_OPERATOR_PRIVILEGES;
-	} else if (str == "+l") {
-		return SET_USER_LIMIT;
-	} else if (str == "-l") {
-		return UNSET_USER_LIMIT;
-	} else if (str == "+k") {
-		return SET_PASSWORD;
-	} else if (str == "-k") {
-		return UNSET_PASSWORD;
-	} else {
-		return INVALID_MODE;
-	}
-}
-
