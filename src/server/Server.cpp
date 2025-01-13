@@ -312,11 +312,17 @@ void Server::Invite(int clientSocket, const std::vector<std::string> tokens) {
 	}
 //	check whether channel exists
 	if (_channels.find(tokens[0]) != _channels.end()) {
+		int userFd = _findClientFromNickname(tokens[1]);
+		if (userFd == -1) {
+			send(clientSocket, ERR_MSG_USER_NOT_FOUND, std::string(ERR_MSG_USER_NOT_FOUND).size(), 0);
+			return;
+		}
 		auto channel = _channels[tokens[0]];
 //		check whether user is operator
-		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), _clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
-			std::vector<Client>& invited = channel.GetInvited();
-			invited.push_back(tokens[1]);
+		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) != channel
+		.GetOperators().end()) {
+			std::vector<int>& invited = channel.GetInvited();
+			invited.push_back(userFd);
 			std::string msg = INVITED_MSG(tokens[0], tokens[1]);
 			send(clientSocket, msg.c_str(), msg.size(), 0);
 		} else {
