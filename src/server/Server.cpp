@@ -365,35 +365,36 @@ void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
 //		check whether user is operator
 		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
 			try {
-				switch (tokens[0].c_str()) {
-					case "+i":
+				enum Mode mode = _strToModeEnum(tokens[0]);
+				switch (mode) {
+					case MAKE_INVITE_ONLY:
 						_changeInviteOnlyRestriction(tokens[0], true);
 						break;
-					case "-i":
+					case UNMAKE_INVITE_ONLY:
 						_changeInviteOnlyRestriction(tokens[0], false);
 						break;
-					case "+t":
+					case MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
 						_changeTopicRestriction(tokens[0], true);
 						break;
-					case "-t":
+					case UNMAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
 						_changeTopicRestriction(tokens[0], false);
 						break;
-					case "+o":
+					case GIVE_OPERATOR_PRIVILEGES:
 						_changeOperatorPrivileges(tokens[0], tokens[1], true);
 						break;
-					case "-o":
+					case TAKE_OPERATOR_PRIVILEGES:
 						_changeOperatorPrivileges(tokens[0], tokens[1], false);
 						break;
-					case "+l":
+					case SET_USER_LIMIT:
 						_changeUserLimitRestriction(tokens[0], std::stoul(tokens[1]));
 						break;
-					case "-l":
+					case UNSET_USER_LIMIT:
 						_changeUserLimitRestriction(tokens[0], NO_USER_LIMIT);
 						break;
-					case "+k":
+					case SET_PASSWORD:
 						_changePasswordRestriction(tokens[0], tokens[1]);
 						break;
-					case "-k":
+					case UNSET_PASSWORD:
 						_changePasswordRestriction(tokens[0], "");
 						break;
 					default:

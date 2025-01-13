@@ -5,14 +5,14 @@
 #ifndef IRC_ENUMS_H
 #define IRC_ENUMS_H
 
-typedef enum {
+enum ClientState {
 //	client is connected, but not yet authenticated
 	CONNECTED,
 //	client is connected & authenticated
 	AUTHENTICATED,
-} ClientState;
+};
 
-typedef enum {
+enum Method {
 	AUTHENTICATE,
 	NICK,
 	USER,
@@ -23,9 +23,9 @@ typedef enum {
 	TOPIC,
 	MODE,
 	INVALID,
-} Method;
+};
 
-typedef enum {
+enum Mode {
 	MAKE_INVITE_ONLY, // +i
 	UNMAKE_INVITE_ONLY, // -i
 	MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR, // +t
@@ -37,6 +37,6 @@ typedef enum {
 	SET_PASSWORD, // +k <password>
 	UNSET_PASSWORD, // -k
 	INVALID_MODE,
-} Mode;
+};
 
 #endif //IRC_ENUMS_H
