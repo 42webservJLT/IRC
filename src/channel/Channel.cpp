@@ -70,6 +70,11 @@ void Channel::SetPassword(std::string password) {
 	_password = password;
 }
 
+// sets if the topic of the channel can only be set by operators
+void Channel::SetTopicOnlySettableByOperator(bool topicOnlySettableByOperator) {
+	_topicOnlySettableByOperator = topicOnlySettableByOperator;
+}
+
 // sets the topic of the channel
 void Channel::SetTopic(std::string topic) {
 	_topic = topic;
@@ -98,9 +103,7 @@ void Channel::MakeOperator(int user) {
 
 // removes operator status from a user
 void Channel::RemoveOperator(const int user) {
-	auto it = std::find_if(_operators.begin(), _operators.end(), [user](const Client& c) {
-		return c.GetUserId() == user;
-	});
+	auto it = std::find(_operators.begin(), _operators.end(), user);
 	if (it != _operators.end()) {
 		_operators.erase(it);
 	}
@@ -108,15 +111,8 @@ void Channel::RemoveOperator(const int user) {
 
 // removes a user from the channel
 void Channel::RemoveUser(const int user) {
-	auto it = std::find_if(_users.begin(), _users.end(), [&](const Client& c) {
-		return c.GetUserName() == user;
-	});
+	auto it = std::find(_users.begin(), _users.end(), user);
 	if (it != _users.end()) {
 		_users.erase(it);
 	}
-}
-
-// gets the Password of the channel
-std::string Channel::GetPassword() const {
-	return _password;
 }

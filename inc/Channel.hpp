@@ -27,6 +27,7 @@ class Channel {
 
 		void SetName(std::string name);
 		void SetPassword(std::string password);
+		void SetTopicOnlySettableByOperator(bool topicOnlySettableByOperator);
 		void SetTopic(std::string topic);
 		void SetInviteOnly(bool inviteOnly);
 		void SetUserLimit(size_t userLimit);
