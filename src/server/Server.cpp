@@ -250,11 +250,11 @@ void Server::Join(int clientSocket, const std::vector<std::string> tokens) {
 			channel.GetUserLimit()) || channel.GetUserLimit() == NO_USER_LIMIT) {
 //			check whether channel is invite only or if client is invited
 			if (!channel.GetInviteOnly()) {
-					channel.AddUser(_clients[clientSocket].GetNickName());
-			} else if (std::find(channel.GetInvited().begin(), channel.GetInvited().end(), _clients[clientSocket].GetNickName()) != channel.GetInvited().end()) {
-				channel.AddUser(_clients[clientSocket].GetNickName());
+				channel.AddUser(clientSocket);
+			} else if (std::find(channel.GetInvited().begin(), channel.GetInvited().end(), clientSocket) != channel.GetInvited().end()) {
+				channel.AddUser(clientSocket);
 				auto invited = channel.GetInvited();
-				invited.erase(std::remove(invited.begin(), invited.end(), _clients[clientSocket].GetNickName()), invited.end());
+				invited.erase(std::remove(invited.begin(), invited.end(), clientSocket), invited.end());
 			} else {
 				send(clientSocket, ERR_MSG_CHANNEL_NOT_INVITED, std::string(ERR_MSG_CHANNEL_NOT_INVITED).size(), 0);
 			}
@@ -291,7 +291,9 @@ void Server::Kick(int clientSocket, const std::vector<std::string> tokens) {
 		}
 		auto channel = _channels[tokens[0]];
 //		check whether user is operator
-		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), _clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
+		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) != channel
+		.GetOperators()
+		.end()) {
 //			check whether user is in channel
 			if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), userFd) != channel.GetUsers().end()) {
 				channel.RemoveUser(userFd);
@@ -345,7 +347,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string> tokens) {
 	if (_channels.find(tokens[0]) != _channels.end()) {
 		auto channel = _channels[tokens[0]];
 //		check whether user is operator
-		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
+		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) != channel.GetOperators().end()) {
 			channel.SetTopic(tokens[1]);
 		} else {
 			send(clientSocket, ERR_MSG_NOT_A_CHANNEL_OPERATOR, std::string(ERR_MSG_NOT_A_CHANNEL_OPERATOR).size(), 0);
@@ -365,7 +367,7 @@ void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
 	if (_channels.find(tokens[0]) != _channels.end()) {
 		auto channel = _channels[tokens[0]];
 //		check whether user is operator
-		if (channel.GetOperators().find(_clients[clientSocket].GetNickName()) != channel.GetOperators().end()) {
+		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) != channel.GetOperators().end()) {
 			try {
 				enum Mode mode = _strToModeEnum(tokens[0]);
 				switch (mode) {
@@ -416,12 +418,12 @@ void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
 
 //	changes the invite only restriction of a channel
 void Server::_changeInviteOnlyRestriction(std::string channel, bool isInviteOnly) {
-	_channels[channel].SetInviteOnly(mode);
+	_channels[channel].SetInviteOnly(isInviteOnly);
 }
 
 // changes the topic restriction of a channel
 void Server::_changeTopicRestriction(std::string channel, bool isTopicOnlySettableByOperator) {
-	_channels[channel].SetTopicOnlySettableByOperator(mode);
+	_channels[channel].SetTopicOnlySettableByOperator(isTopicOnlySettableByOperator);
 }
 
 // changes the password restriction of a channel
@@ -431,10 +433,14 @@ void Server::_changePasswordRestriction(std::string channel, std::string passwor
 
 // changes the operator privileges of a channel
 void Server::_changeOperatorPrivileges(std::string channel, std::string user, bool isOperator) {
+	int userFd = _findClientFromNickname(user);
+	if (userFd == -1) {
+		throw std::runtime_error("User not found");
+	}
 	if (isOperator) {
-		_channels[channel].MakeOperator(user);
+		_channels[channel].MakeOperator(userFd);
 	} else {
-		_channels[channel].RemoveOperator(user);
+		_channels[channel].RemoveOperator(userFd);
 	}
 }
 
