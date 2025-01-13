@@ -1,0 +1,28 @@
+services:
+  weechat:
+    container_name: weechat
+    image: weechat/weechat:latest-slim
+    ports:
+      - "6696:6696"
+    command: ["sleep", "infinity"]
+    network_mode: "host"
+#    networks:
+#        - irc_network
+
+
+#  irc:
+#    container_name: irc
+#    build:
+#        context: .
+#        dockerfile: Dockerfile
+#    ports:
+#        - "6697:6697"
+#    depends_on:
+#      - weechat
+#    command: ["sleep", "infinity"]
+#    networks:
+#        - irc_network
+
+#networks:
+#    irc_network:
+#        driver: bridge

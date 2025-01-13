@@ -39,7 +39,17 @@ fclean: clean
 
 re: fclean all
 
+start:
+	docker compose up --remove-orphans
+
+server:
+	docker exec -it irc /bin/bash -c "./ircserv 6697 abc"
+
+client:
+	docker exec -it weechat weechat
+
 lint:
 	cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude ./src
 	find ./inc -type f -name "*.hpp" -exec cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude {} \;
 
+.PHONY: all clean fclean re start server client lint
