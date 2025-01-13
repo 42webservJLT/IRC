@@ -145,8 +145,6 @@ void Server::Run() {
 /* --------------------------------------------------------------------------------- */
 // handles a new connection
 void Server::HandleNewConnection() {
-//	sockaddr_in clientAddr;
-//	int clientFd = accept(_socket, &clientAddr, nullptr);
 	int clientFd = accept(_socket, nullptr, nullptr);
 	if (clientFd >= 0) {
 //		set client socket to non-blocking

@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
 #include "Enums.hpp"
 #include "Client.hpp"
 
