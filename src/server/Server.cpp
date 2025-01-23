@@ -119,10 +119,12 @@ void Server::Run() {
 			switch (it->revents) {
 				case POLLIN:
 					if (it->fd == _socket) {
+						std::cout << "New connection" << std::endl;
 //						new client connection
 						HandleNewConnection();
 					} else {
 //						old client connection
+						std::cout << "Old connection" << std::endl;
 						try {
 							HandleConnection(it->fd);
 						} catch (std::exception &e) {
@@ -132,6 +134,7 @@ void Server::Run() {
 					}
 					break;
 				case POLLHUP:
+					std::cout << "Client disconnected" << std::endl;
 //					client disconnected
 					HandleDisconnection(it->fd);
 					break;
@@ -166,7 +169,8 @@ void Server::HandleNewConnection() {
 // handles a connection
 void Server::HandleConnection(int clientSocket) {
 	char buffer[MAX_BUFFER_SIZE + 1];
-	std::memset(buffer, 0, MAX_BUFFER_SIZE + 1);
+	// std::memset(buffer, 0, MAX_BUFFER_SIZE + 1);
+	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t bytesRead = recv(clientSocket, buffer, MAX_BUFFER_SIZE, 0);
 	if (bytesRead > 0) {
 		std::string msg(buffer);
@@ -271,9 +275,51 @@ void Server::Join(int clientSocket, const std::vector<std::string> tokens) {
 
 // sends a private message
 void Server::PrivMsg(int clientSocket, const std::vector<std::string> tokens) {
-	(void) clientSocket;
-	(void) tokens;
-//	TODO: implement
+	if (tokens.size() < 2) {
+		send(clientSocket, ERR_MSG_INVALID_COMMAND, strlen(ERR_MSG_INVALID_COMMAND), 0);
+		return;
+	}
+
+	std::string target = tokens[0];
+	std::string message = tokens[1];
+	// Reconstruct message if there are more tokens
+	for (size_t i = 2; i < tokens.size(); ++i) {
+		message += " " + tokens[i];
+	}
+
+	// Check if target is a channel
+	if (target[0] == '#') {
+		if (_channels.find(target) == _channels.end()) {
+			send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, strlen(ERR_MSG_CHANNEL_NOT_FOUND), 0);
+			return;
+		}
+
+		Channel &channel = _channels[target];
+		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) == channel.GetUsers().end()) {
+			send(clientSocket, ERR_MSG_USER_NOT_IN_CHANNEL, strlen(ERR_MSG_USER_NOT_IN_CHANNEL), 0);
+			return;
+		}
+
+		// Forward message to all users in the channel except the sender
+		for (int userFd : channel.GetUsers()) {
+			if (userFd != clientSocket) {
+				std::string fullMessage = "PRIVMSG " + target + " :" + message + "\n";
+				send(userFd, fullMessage.c_str(), fullMessage.size(), 0);
+			}
+		}
+	}
+	// Target is a user
+	else {
+		int targetFd = _findClientFromNickname(target);
+		if (targetFd == -1) {
+			send(clientSocket, ERR_MSG_USER_NOT_FOUND, strlen(ERR_MSG_USER_NOT_FOUND), 0);
+			return;
+		}
+
+		// Send the message to the target user
+		std::string fullMessage = "PRIVMSG " + target + " :" + message + "\n";
+		send(targetFd, fullMessage.c_str(), fullMessage.size(), 0);
+	}
 }
 
 /* --------------------------------------------------------------------------------- */

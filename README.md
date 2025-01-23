@@ -16,3 +16,5 @@ Add server in weechat
 /server add irc  host.docker.internal/6667 -notls
 /connect irc -password=abc
 ```
+docker exec  -it weechat weechat
+weechat
