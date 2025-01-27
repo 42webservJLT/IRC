@@ -3,6 +3,7 @@
 //
 
 #include "Server.hpp"
+#include "Client.hpp"
 
 Mode _strToModeEnum(std::string str);
 
@@ -43,8 +44,20 @@ Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(
 
 	freeaddrinfo(res);
 
+	// IMPORTANT: listen on your bound socket
+	if (listen(_socket, SOMAXCONN) < 0) {
+		close(_socket);
+		throw std::runtime_error("Failed to listen on socket");
+	}
+
+	// Make _listeningFd point to the same socket
+	_listeningFd = _socket;
+
 	//	initialize pollfd vector
 	_pollFds.push_back({_socket, POLLIN, 0});
+
+	// Print server start message
+	std::cout << "Server running on " << _host << ":" << _port << std::endl;
 
 //	initialize function mapping
 	_methods.insert({AUTHENTICATE, &Server::Authenticate});
@@ -96,56 +109,34 @@ std::vector<pollfd> Server::GetPollFds() const {
 /* Run                                                                               */
 /* --------------------------------------------------------------------------------- */
 // runs the server
-void Server::Run() {
-//	start listening
-	if (listen(_socket, MAX_CONNECTIONS) < 0) {
-		close(_socket);
-		throw std::runtime_error("Failed to listen");
-	}
-
-//	announce server is running
-	std::cout << "Server running on " << GetHost() << ":" << GetPort() << std::endl;
-
-//	start polling
+bool Server::Run() {
 	while (true) {
 		int pollCount = poll(_pollFds.data(), _pollFds.size(), -1);
 		if (pollCount < 0) {
-			close(_socket);
-			throw std::runtime_error("Failed to poll");
+			// handle error
+			return false;
 		}
 
-//		handle incoming connections
-		for (auto it = _pollFds.begin(); it != _pollFds.end(); ++it) {
-			switch (it->revents) {
-				case POLLIN:
-					if (it->fd == _socket) {
-						std::cout << "New connection" << std::endl;
-//						new client connection
-						HandleNewConnection();
-					} else {
-//						old client connection
-						std::cout << "Old connection" << std::endl;
-						try {
-							HandleConnection(it->fd);
-						} catch (std::exception &e) {
-							std::cerr << e.what() << std::endl;
-							HandleDisconnection(it->fd);
-						}
+		std::vector<int> toRemove;
+		for (size_t i = 0; i < _pollFds.size(); ++i) {
+			if (_pollFds[i].revents & POLLIN) {
+				if (_pollFds[i].fd == _listeningFd) {
+					HandleNewConnection();
+				} else {
+					if (!HandleClient(_pollFds[i].fd)) {
+						toRemove.push_back(_pollFds[i].fd);
 					}
-					break;
-				case POLLHUP:
-					std::cout << "Client disconnected" << std::endl;
-//					client disconnected
-					HandleDisconnection(it->fd);
-					break;
-				case 0:
-					continue;
-				default:
-					break;
+				}
 			}
+			// optionally handle other events like POLLOUT
+		}
 
+		// Remove closed/disconnected FDs here
+		for (size_t i = 0; i < toRemove.size(); ++i) {
+			RemoveClient(toRemove[i]);
 		}
 	}
+	return true;
 }
 
 /* --------------------------------------------------------------------------------- */
@@ -153,16 +144,23 @@ void Server::Run() {
 /* --------------------------------------------------------------------------------- */
 // handles a new connection
 void Server::HandleNewConnection() {
-	int clientFd = accept(_socket, nullptr, nullptr);
+	sockaddr_in clientAddr;
+	socklen_t addrSize = sizeof(clientAddr);
+	int clientFd = accept(_listeningFd, reinterpret_cast<sockaddr*>(&clientAddr), &addrSize);
 	if (clientFd >= 0) {
-//		set client socket to non-blocking
 		fcntl(clientFd, F_SETFL, O_NONBLOCK);
-		_pollFds.push_back({ clientFd, POLLIN, 0 });
+		// Register new client in poll
+		struct pollfd pfd;
+		pfd.fd = clientFd;
+		pfd.events = POLLIN;
+		_pollFds.push_back(pfd);
 
-		Client client;
-		_clients.insert({ clientFd, client });
-
-		std::cout << "New connection from " << clientFd << std::endl;
+		_clients[clientFd] = Client(clientFd);
+		std::cout << "New connection from FD: " << clientFd << std::endl;
+	}
+	else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+		std::cerr << "Failed to accept new connection: " << strerror(errno) << std::endl;
+		// Don’t exit here—just log the error
 	}
 }
 
@@ -173,29 +171,29 @@ void Server::HandleConnection(int clientSocket) {
 	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t bytesRead = recv(clientSocket, buffer, MAX_BUFFER_SIZE, 0);
 	if (bytesRead > 0) {
-		std::string msg(buffer);
+		std::string msg(buffer, bytesRead);
 
 		std::string& clientBuffer = _clients[clientSocket].GetMsgBuffer();
 		clientBuffer.append(msg);
 
 //		for real irc client, check for \r\n instead!
-		if (msg.find("\r\n") != std::string::npos) {
-//			verify authenticated
-			if (!_clients[clientSocket].GetAuthenticated()) {
-				send(clientSocket, ERR_MSG_UNAUTHENTICATED, std::string(ERR_MSG_UNAUTHENTICATED).size(), 0);
-				return;
-			}
-//			parse message
-			std::tuple<Method, std::vector<std::string>> vals = _parser.parse(clientBuffer);
-//			handle message
+		size_t pos;
+		while ((pos = clientBuffer.find("\r\n")) != std::string::npos) {
+			std::string commandLine = clientBuffer.substr(0, pos);
+			clientBuffer.erase(0, pos + 2); // Remove processed command
+
+			// Parse commandLine into tokens
+			std::tuple<Method, std::vector<std::string>> vals = _parser.parse(commandLine);
+
+			// Handle message
 			if (std::get<0>(vals) == INVALID) {
-				send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
-				return;
+				std::string err = "421 " + _clients[clientSocket].GetNickName() + " " + std::get<1>(vals).front() + " :Unknown command\r\n";
+				send(clientSocket, err.c_str(), err.size(), 0);
+				continue; // Continue processing other commands
 			}
+
+			// Execute the corresponding command handler
 			(this->*_methods[std::get<0>(vals)])(clientSocket, std::get<1>(vals));
-//			clear buffer
-			std::cout << clientBuffer << std::endl;
-			clientBuffer.clear();
 		}
 	} else if (bytesRead == 0) {
 		HandleDisconnection(clientSocket);
@@ -213,15 +211,44 @@ void Server::HandleDisconnection(int clientSocket) {
 	}), _pollFds.end());
 }
 
+void Server::RemoveClient(int clientFd) {
+	close(clientFd);
+	_clients.erase(clientFd);
+
+	for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it) {
+		if (it->fd == clientFd) {
+			_pollFds.erase(it);
+			break;
+		}
+	}
+	std::cout << "Client disconnected on FD: " << clientFd << std::endl;
+}
+
+bool Server::HandleClient(int clientFd) {
+	char buffer[512];
+	ssize_t bytes = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+	if (bytes <= 0) {
+		return false; // signals removal
+	}
+	// otherwise handle the data
+	return true;
+}
+
+
 /* --------------------------------------------------------------------------------- */
 /* Client Commands                                                                   */
 /* --------------------------------------------------------------------------------- */
 // authenticates a client
 void Server::Authenticate(int clientSocket, const std::vector<std::string> tokens) {
 	if (tokens.size() != 1 || tokens[0] != GetPassword()) {
-		send(clientSocket, ERR_MSG_UNAUTHENTICATED, std::string(ERR_MSG_UNAUTHENTICATED).size(), 0);
+		std::string err = "464 " + _clients[clientSocket].GetNickName() + " PASS :Password incorrect\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		HandleDisconnection(clientSocket); // Disconnect the client on failed authentication
 	} else {
 		_clients[clientSocket].SetAuthenticated(true);
+		// Optionally, send a welcome message or further instructions
+		std::string welcome = "001 " + _clients[clientSocket].GetNickName() + " :Welcome to the IRC Server\r\n";
+		send(clientSocket, welcome.c_str(), welcome.size(), 0);
 	}
 }
 
@@ -236,15 +263,28 @@ void Server::Nick(int clientSocket, const std::vector<std::string> tokens) {
 
 // sets the username of a client
 void Server::User(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() != 1) {
-		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+	if (tokens.size() < 4) { // IRC USER command has more parameters
+		std::string err = "461 USER :Not enough parameters\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 	} else {
 		_clients[clientSocket].SetUserName(tokens[0]);
+		// You can handle mode and real name if needed
 	}
 }
 
 // joins a channel
 void Server::Join(int clientSocket, const std::vector<std::string> tokens) {
+	if (!_clients[clientSocket].GetAuthenticated()) {
+		std::string err = "464 " + _clients[clientSocket].GetNickName() + " JOIN :You're not authenticated\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
+	if (_clients[clientSocket].GetNickName().empty() || _clients[clientSocket].GetUserName().empty()) {
+		std::string err = "451 JOIN :You have not registered\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
 	if (tokens.size() != 1) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;

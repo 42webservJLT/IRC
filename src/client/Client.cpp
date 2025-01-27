@@ -7,7 +7,11 @@
 /* --------------------------------------------------------------------------------- */
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
-Client::Client() : _userName(""), _nickName(""), _authenticated(false), _msgBuffer("") {}
+Client::Client() : _fd(-1), _userName(""), _nickName(""), _authenticated(false), _msgBuffer("") {}
+
+
+Client::Client(int fd) : _fd(fd), _userName(""), _nickName(""), _authenticated(false), _msgBuffer("") {
+}
 
 Client::~Client() {}
 
@@ -47,4 +51,8 @@ void Client::SetNickName(std::string nickName) {
 // sets if client is authenticated
 void Client::SetAuthenticated(bool authenticated) {
 	_authenticated = authenticated;
+}
+
+int Client::GetFd() const {
+	return _fd;
 }

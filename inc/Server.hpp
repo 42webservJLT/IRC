@@ -43,12 +43,15 @@ class Server {
 		~Server();
 
 //		runs the server
-		void Run();
+		bool Run();
 
 //		connection handling
 		void HandleNewConnection();
 		void HandleConnection(int clientSocket);
 		void HandleDisconnection(int clientSocket);
+
+		void RemoveClient(int clientFd);
+		bool HandleClient(int clientFd);
 
 //		client commands
 		void Authenticate(int clientSocket, const std::vector<std::string> tokens);
@@ -84,6 +87,7 @@ class Server {
 		std::map<Method, void (Server::*)(int, const std::vector<std::string>)> _methods;
 //		instance of parser class
 		Parser _parser;
+		int _listeningFd;
 
 //		mode sub commands
 		void _changeInviteOnlyRestriction(std::string channel, bool isInviteOnly);

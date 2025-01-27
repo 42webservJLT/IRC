@@ -12,12 +12,14 @@
 class Client {
 	public:
 		Client();
+		Client(int fd);
 		~Client();
 
 		std::string GetUserName() const;
 		std::string GetNickName() const;
 		bool GetAuthenticated() const;
 		std::string& GetMsgBuffer();
+		int GetFd() const;
 
 //		TODO: implement
 		void SetUserName(std::string userName);
@@ -26,6 +28,7 @@ class Client {
 //		TODO: end
 
 	private:
+		int _fd;
 		std::string _userName;
 		std::string _nickName;
 		bool _authenticated;
