@@ -29,6 +29,9 @@ std::tuple<Method, std::vector<std::string>> Parser::parse(std::string& msg) con
 		else if (token == "TOPIC") method = TOPIC;
 		else if (token == "MODE") method = MODE;
 		else if (token == "PING") method = PING;
+		else if (token == "QUIT") method = QUIT;
+		// tokens that are not implemented becuase the subject doesn't require them. can ignore or reply with 421 Unknown command
+		else if (token == "PART" || token == "LIST" || token == "NAMES" || token == "WHO" || token == "WHOIS" || token == "WHOWAS" || token == "MOTD" || token == "LUSERS" || token == "VERSION" || token == "STATS" || token == "LINKS" || token == "TIME" || token == "CONNECT" || token == "TRACE" || token == "ADMIN" || token == "INFO" || token == "SERVLIST" || token == "SQUERY" || token == "SILENCE" || token == "REHASH" || token == "DIE" || token == "RESTART" || token == "SUMMON" || token == "USERS" || token == "WALLOPS" || token == "USERHOST" || token == "ISON") method = INVALID;
 		else method = INVALID;
 	}
 

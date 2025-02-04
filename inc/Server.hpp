@@ -49,22 +49,25 @@ class Server {
 		void HandleNewConnection();
 		void HandleConnection(int clientSocket);
 		void HandleDisconnection(int clientSocket);
-		void Ping(int clientFd, const std::vector<std::string> tokens);
+		void Ping(int clientFd, const std::vector<std::string>& tokens);
 		void RemoveClient(int clientFd);
 		bool HandleClient(int clientFd);
+//		verification methods
+		void Authenticate(int clientSocket, const std::vector<std::string>& tokens);
+		void RegisterClientIfReady(int clientSocket);
 
 //		client commands
-		void Authenticate(int clientSocket, const std::vector<std::string> tokens);
-		void Nick(int clientSocket, const std::vector<std::string> tokens);
-		void User(int clientSocket, const std::vector<std::string> tokens);
-		void Join(int clientSocket, const std::vector<std::string> tokens);
-		void PrivMsg(int clientSocket, const std::vector<std::string> tokens);
+		void Nick(int clientSocket, const std::vector<std::string>& tokens);
+		void User(int clientSocket, const std::vector<std::string>& tokens);
+		void Join(int clientSocket, const std::vector<std::string>& tokens);
+		void PrivMsg(int clientSocket, const std::vector<std::string>& tokens);
+		void Quit(int clientSocket, const std::vector<std::string>& tokens);
 
 //		operator commands for channels
-		void Kick(int clientSocket, const std::vector<std::string> tokens);
-		void Invite(int clientSocket, const std::vector<std::string> tokens);
-		void Topic(int clientSocket, const std::vector<std::string> tokens);
-		void Mode(int clientSocket, const std::vector<std::string> tokens);
+		void Kick(int clientSocket, const std::vector<std::string>& tokens);
+		void Invite(int clientSocket, const std::vector<std::string>& tokens);
+		void Topic(int clientSocket, const std::vector<std::string>& tokens);
+		void Mode(int clientSocket, const std::vector<std::string>& tokens);
 
 //		getters
 		std::string GetHost() const;
@@ -84,7 +87,7 @@ class Server {
 //		maps channel name to channel
 		std::map<std::string, Channel> _channels;
 //		mapping of method to function
-		std::map<Method, void (Server::*)(int, const std::vector<std::string>)> _methods;
+		std::map<Method, void (Server::*)(int, const std::vector<std::string>&)> _methods;
 //		instance of parser class
 		Parser _parser;
 		int _listeningFd;
@@ -96,6 +99,7 @@ class Server {
 		void _changeOperatorPrivileges(std::string channel, std::string user, bool isOperator);
 		void _changeUserLimitRestriction(std::string channel, size_t userLimit);
 		int _findClientFromNickname(std::string nickname);
+		void _BroadcastToChannel(const std::string &channelName, const std::string &msg);
 };
 
 

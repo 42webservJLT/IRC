@@ -60,17 +60,18 @@ Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(
 	std::cout << "Server running on " << _host << ":" << _port << std::endl;
 
 //	initialize function mapping
-	_methods.insert({AUTHENTICATE, &Server::Authenticate});
-	_methods.insert({NICK, &Server::Nick});
-	_methods.insert({USER, &Server::User});
-	_methods.insert({JOIN, &Server::Join});
-	_methods.insert({PRIVMSG, &Server::PrivMsg});
-	_methods.insert({KICK, &Server::Kick});
-	_methods.insert({INVITE, &Server::Invite});
-	_methods.insert({TOPIC, &Server::Topic});
-	_methods.insert({MODE, &Server::Mode});
-	_methods.insert({PING, &Server::Ping});
-	_methods.insert({INVALID, nullptr});
+	_methods.emplace(AUTHENTICATE, static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Authenticate));
+	_methods.emplace(NICK,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Nick));
+	_methods.emplace(USER,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::User));
+	_methods.emplace(JOIN,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Join));
+	_methods.emplace(PRIVMSG,    static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::PrivMsg));
+	_methods.emplace(KICK,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Kick));
+	_methods.emplace(INVITE,     static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Invite));
+	_methods.emplace(TOPIC,      static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Topic));
+	_methods.emplace(MODE,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Mode));
+	_methods.emplace(PING,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Ping));
+	_methods.emplace(QUIT,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Quit));
+	_methods.emplace(INVALID,    nullptr);
 
 //	initialize parser
 	_parser = Parser();
@@ -237,7 +238,7 @@ bool Server::HandleClient(int clientFd) {
 }
 
 // handle PING
-void Server::Ping(int clientFd, const std::vector<std::string> tokens) {
+void Server::Ping(int clientFd, const std::vector<std::string>& tokens) {
 	// If no parameter was sent, ignore or send an error.
 	if (tokens.size() < 1) {
 		std::string err("409 :No origin specified\r\n");
@@ -253,83 +254,123 @@ void Server::Ping(int clientFd, const std::vector<std::string> tokens) {
 /* --------------------------------------------------------------------------------- */
 /* Client Commands                                                                   */
 /* --------------------------------------------------------------------------------- */
-// authenticates a client
-void Server::Authenticate(int clientSocket, const std::vector<std::string> tokens) {
+// authenticates a client if the password is correct
+void Server::Authenticate(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 1 || tokens[0] != GetPassword()) {
 		std::string err = "464 " + _clients[clientSocket].GetNickName() + " PASS :Password incorrect\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
-		HandleDisconnection(clientSocket); // Disconnect the client on failed authentication
+		// PREVIOUS APPROACH: HandleDisconnection(clientSocket); // Disconnect the client on failed authentication
+		RemoveClient(clientSocket); // forcibly disconnect
+		return;
 	} else {
 		_clients[clientSocket].SetAuthenticated(true);
 		// Optionally, send a welcome message or further instructions
-		std::string welcome = "001 " + _clients[clientSocket].GetNickName() + " :Welcome to the IRC Server\r\n";
-		send(clientSocket, welcome.c_str(), welcome.size(), 0);
+		RegisterClientIfReady(clientSocket);
 	}
 }
 
 // sets the nickname of a client
-void Server::Nick(int clientSocket, const std::vector<std::string> tokens) {
+void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 1) {
-		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
-	} else {
-		_clients[clientSocket].SetNickName(tokens[0]);
+		std::string err = "461 NICK :Not enough parameters\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
 	}
+	_clients[clientSocket].SetNickName(tokens[0]);
+	// Check if PASS was correct & user is set
+	RegisterClientIfReady(clientSocket);
 }
 
 // sets the username of a client
-void Server::User(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() < 4) { // IRC USER command has more parameters
+void Server::User(int clientSocket, const std::vector<std::string>& tokens) {
+	if (tokens.size() < 4) {
 		std::string err = "461 USER :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
 	} else {
 		_clients[clientSocket].SetUserName(tokens[0]);
-		// You can handle mode and real name if needed
+		// Optionally handle mode & real name
+
+		// Check if PASS was correct & nick is set
+		RegisterClientIfReady(clientSocket);
 	}
 }
 
-// joins a channel
-void Server::Join(int clientSocket, const std::vector<std::string> tokens) {
+void Server::RegisterClientIfReady(int clientSocket) {
+	Client &c = _clients[clientSocket];
+	if (c.GetAuthenticated() && !c.GetNickName().empty() && !c.GetUserName().empty()) {
+		std::string welcome = "001 " + c.GetNickName() + " :Welcome to the IRC Server\r\n";
+		send(clientSocket, welcome.c_str(), welcome.size(), 0);
+	}
+}
+
+
+//TODO : have to check if user is already in channel or not
+void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 	if (!_clients[clientSocket].GetAuthenticated()) {
 		std::string err = "464 " + _clients[clientSocket].GetNickName() + " JOIN :You're not authenticated\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
-
 	if (_clients[clientSocket].GetNickName().empty() || _clients[clientSocket].GetUserName().empty()) {
 		std::string err = "451 JOIN :You have not registered\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
-	if (tokens.size() != 1) {
+	if (tokens.size() < 1 || tokens.size() > 2) {
+		std::string err = "461 JOIN :Incorrect amount for parameters\r\n";
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
 	}
-//	check whether channel exists
-	if (_channels.find(tokens[0]) != _channels.end()) {
-		auto channel = _channels[tokens[0]];
-//		check whether user limit is reached; 0 means no limit
-		if ((channel.GetUserLimit() > NO_USER_LIMIT && channel.GetUsers().size() <
-			channel.GetUserLimit()) || channel.GetUserLimit() == NO_USER_LIMIT) {
-//			check whether channel is invite only or if client is invited
-			if (!channel.GetInviteOnly()) {
-				channel.AddUser(clientSocket);
-			} else if (std::find(channel.GetInvited().begin(), channel.GetInvited().end(), clientSocket) != channel.GetInvited().end()) {
-				channel.AddUser(clientSocket);
-				auto invited = channel.GetInvited();
-				invited.erase(std::remove(invited.begin(), invited.end(), clientSocket), invited.end());
-			} else {
-				send(clientSocket, ERR_MSG_CHANNEL_NOT_INVITED, std::string(ERR_MSG_CHANNEL_NOT_INVITED).size(), 0);
-			}
-		} else {
-			send(clientSocket, ERR_MSG_CHANNEL_FULL, std::string(ERR_MSG_CHANNEL_FULL).size(), 0);
+	std::string channelName = tokens[0];
+	std::string providedKey = (tokens.size() > 1) ? tokens[1] : "";
+
+	Channel* channel;
+	// if channel doesn't exist, create it
+	if (_channels.find(channelName) == _channels.end()) {
+		_channels[channelName] = Channel();
+		_channels[channelName].SetName(channelName);
+		// If a channel key is provided when creating the channel, set it.
+		if (!providedKey.empty()) {
+			_channels[channelName].SetPassword(providedKey);
 		}
-	} else {
-		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
+		std::cout << "Channel " << channelName << " created." << std::endl;
 	}
+	channel = &_channels[channelName];
+	// check user limit; 0 means no limit
+	if (channel->GetUserLimit() > NO_USER_LIMIT && channel->GetUsers().size() >= channel->GetUserLimit()) {
+		std::string err = "471 " + _clients[clientSocket].GetNickName() + " " + channelName + " :Cannot join channel, User limit exceeded (+l)\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+	// if channel is invite-only, require an invitation
+	if (channel->GetInviteOnly() &&
+		std::find(channel->GetInvited().begin(), channel->GetInvited().end(), clientSocket) == channel->GetInvited().end()) {
+		std::string err = "473 " + _clients[clientSocket].GetNickName() + " " + channelName + " :Cannot join channel, invite is required (+i)\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+	// If the channel has a key (password) already, check if the provided key matches.
+	if (!channel->GetPassword().empty()) {
+		if (providedKey != channel->GetPassword()) {
+			std::string err = "475 " + _clients[clientSocket].GetNickName() + " " + channelName + " :Cannot join channel (+k)\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
+			return;
+		}
+	}
+	// add user & remove invitation if present
+	channel->AddUser(clientSocket);
+	std::vector<int>& invited = channel->GetInvited();
+	invited.erase(std::remove(invited.begin(), invited.end(), clientSocket), invited.end());
+
+	// log and broadcast join
+	std::cout << _clients[clientSocket].GetNickName() << " joined channel " << channelName << std::endl;
+	std::string joinMsg = ":" + _clients[clientSocket].GetNickName() + " JOIN :" + channelName + "\r\n";
+	_BroadcastToChannel(channelName, joinMsg);
 }
 
 // sends a private message
-void Server::PrivMsg(int clientSocket, const std::vector<std::string> tokens) {
+void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() < 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, strlen(ERR_MSG_INVALID_COMMAND), 0);
 		return;
@@ -377,11 +418,50 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string> tokens) {
 	}
 }
 
+void Server::_BroadcastToChannel(const std::string &channelName, const std::string &msg) {
+	if (_channels.find(channelName) != _channels.end()) {
+		Channel &channel = _channels[channelName];
+		for (int userFd : channel.GetUsers()) {
+			send(userFd, msg.c_str(), msg.size(), 0);
+		}
+	}
+}
+
+void Server::Quit(int clientSocket, const std::vector<std::string>& tokens) {
+	// Determine quit message (if provided by client, remove any leading ':' character)
+	std::string quitMessage = "Client Quit";
+	if (!tokens.empty()) {
+		quitMessage = tokens[0];
+		if (!quitMessage.empty() && quitMessage[0] == ':')
+			quitMessage = quitMessage.substr(1);
+	}
+
+	// Construct the quit message using the client's nickname
+	std::string broadcastMsg = ":" + _clients[clientSocket].GetNickName() +
+							" QUIT :" + quitMessage + "\r\n";
+
+	// Broadcast quit message to all channels the client is in and remove from those channels
+	for (auto &pair : _channels) {
+		Channel &channel = pair.second;
+		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) != channel.GetUsers().end()) {
+			_BroadcastToChannel(channel.GetName(), broadcastMsg);
+			channel.RemoveUser(clientSocket);
+		}
+	}
+
+	// Log the quit event on the server terminal
+	std::cout << "Client " << _clients[clientSocket].GetNickName() << " (" << clientSocket << ") is quitting: " << quitMessage << std::endl;
+
+	// Disconnect the client
+	HandleDisconnection(clientSocket);
+}
+
+
 /* --------------------------------------------------------------------------------- */
 /* Operator Commands                                                                 */
 /* --------------------------------------------------------------------------------- */
 // kicks a user from a channel
-void Server::Kick(int clientSocket, const std::vector<std::string> tokens) {
+void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
@@ -413,7 +493,7 @@ void Server::Kick(int clientSocket, const std::vector<std::string> tokens) {
 }
 
 // invites a user to a channel
-void Server::Invite(int clientSocket, const std::vector<std::string> tokens) {
+void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
@@ -442,7 +522,7 @@ void Server::Invite(int clientSocket, const std::vector<std::string> tokens) {
 }
 
 // sets the topic of a channel
-void Server::Topic(int clientSocket, const std::vector<std::string> tokens) {
+void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
@@ -462,97 +542,109 @@ void Server::Topic(int clientSocket, const std::vector<std::string> tokens) {
 }
 
 // sets the mode of a channel
-void Server::Mode(int clientSocket, const std::vector<std::string> tokens) {
-	if (tokens.size() < 1) {
-		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+void Server::Mode(int clientSocket, const std::vector<std::string>& tokens) {
+	// Expected command format: MODE <channel> <mode> [parameters...]
+	if (tokens.size() < 2) {
+		std::string err = "461 MODE :Not enough parameters\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
-//	check whether channel exists
-	if (_channels.find(tokens[0]) != _channels.end()) {
-		auto channel = _channels[tokens[0]];
-//		check whether user is operator
-		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) != channel.GetOperators().end()) {
-			try {
-				enum Mode mode = _strToModeEnum(tokens[0]);
-				switch (mode) {
-					case MAKE_INVITE_ONLY:
-						if (tokens.size() != 1) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changeInviteOnlyRestriction(tokens[0], true);
-						break;
-					case UNMAKE_INVITE_ONLY:
-						if (tokens.size() != 1) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changeInviteOnlyRestriction(tokens[0], false);
-						break;
-					case MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
-						if (tokens.size() != 1) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changeTopicRestriction(tokens[0], true);
-						break;
-					case UNMAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
-						if (tokens.size() != 1) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changeTopicRestriction(tokens[0], false);
-						break;
-					case GIVE_OPERATOR_PRIVILEGES:
-						if (tokens.size() != 2) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changeOperatorPrivileges(tokens[0], tokens[1], true);
-						break;
-					case TAKE_OPERATOR_PRIVILEGES:
-						if (tokens.size() != 2) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changeOperatorPrivileges(tokens[0], tokens[1], false);
-						break;
-					case SET_USER_LIMIT:
-						if (tokens.size() != 2) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changeUserLimitRestriction(tokens[0], std::stoul(tokens[1]));
-						break;
-					case UNSET_USER_LIMIT:
-						if (tokens.size() != 1) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changeUserLimitRestriction(tokens[0], NO_USER_LIMIT);
-						break;
-					case SET_PASSWORD:
-						if (tokens.size() != 2) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changePasswordRestriction(tokens[0], tokens[1]);
-						break;
-					case UNSET_PASSWORD:
-						if (tokens.size() != 1) {
-							throw std::runtime_error("Invalid command");
-						}
-						_changePasswordRestriction(tokens[0], "");
-						break;
-					default:
-						send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
-						break;
-				}
-			} catch (std::exception &e) {
-				send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
-			}
-		} else {
-			send(clientSocket, ERR_MSG_NOT_A_CHANNEL_OPERATOR, std::string(ERR_MSG_NOT_A_CHANNEL_OPERATOR).size(), 0);
-		}
-	} else {
-		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
-	}
-}
 
-//	changes the invite only restriction of a channel
-void Server::_changeInviteOnlyRestriction(std::string channel, bool isInviteOnly) {
-	_channels[channel].SetInviteOnly(isInviteOnly);
+	std::string channelName = tokens[0];
+	std::string modeStr = tokens[1];
+
+	// Check whether channel exists.
+	if (_channels.find(channelName) == _channels.end()) {
+		std::string err = "403 " + channelName + " :No such channel\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
+	Channel &channel = _channels[channelName];
+	// Check whether client is a channel operator.
+	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) == channel.GetOperators().end()) {
+		std::string err = "482 " + channelName + " :You're not channel operator\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
+	// Use the enum from the global namespace to avoid name conflict with the member function.
+	::Mode mode = _strToModeEnum(modeStr);
+
+	try {
+		switch (mode) {
+			case MAKE_INVITE_ONLY:
+				if (tokens.size() != 2)
+					throw std::runtime_error("Usage: MODE <channel> +i");
+				_changeInviteOnlyRestriction(channelName, true);
+				break;
+			case UNMAKE_INVITE_ONLY:
+				if (tokens.size() != 2)
+					throw std::runtime_error("Usage: MODE <channel> -i");
+				_changeInviteOnlyRestriction(channelName, false);
+				break;
+			case MAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
+				if (tokens.size() != 2)
+					throw std::runtime_error("Usage: MODE <channel> +t");
+				_changeTopicRestriction(channelName, true);
+				break;
+			case UNMAKE_TOPIC_ONLY_SETTABLE_BY_OPERATOR:
+				if (tokens.size() != 2)
+					throw std::runtime_error("Usage: MODE <channel> -t");
+				_changeTopicRestriction(channelName, false);
+				break;
+			case GIVE_OPERATOR_PRIVILEGES:
+				if (tokens.size() != 3)
+					throw std::runtime_error("Usage: MODE <channel> +o <nick>");
+				_changeOperatorPrivileges(channelName, tokens[2], true);
+				break;
+			case TAKE_OPERATOR_PRIVILEGES:
+				if (tokens.size() != 3)
+					throw std::runtime_error("Usage: MODE <channel> -o <nick>");
+				_changeOperatorPrivileges(channelName, tokens[2], false);
+				break;
+			case SET_USER_LIMIT:
+				if (tokens.size() != 3)
+					throw std::runtime_error("Usage: MODE <channel> +l <limit>");
+				_changeUserLimitRestriction(channelName, std::stoul(tokens[2]));
+				break;
+			case UNSET_USER_LIMIT:
+				if (tokens.size() != 2)
+					throw std::runtime_error("Usage: MODE <channel> -l");
+				_changeUserLimitRestriction(channelName, NO_USER_LIMIT);
+				break;
+			case SET_PASSWORD:
+				if (tokens.size() != 3)
+					throw std::runtime_error("Usage: MODE <channel> +k <password>");
+				_changePasswordRestriction(channelName, tokens[2]);
+				break;
+			case UNSET_PASSWORD:
+				if (tokens.size() != 2)
+					throw std::runtime_error("Usage: MODE <channel> -k");
+				_changePasswordRestriction(channelName, "");
+				break;
+			default:
+			{
+				std::string err = "421 MODE " + modeStr + " :Unknown MODE command\r\n";
+				send(clientSocket, err.c_str(), err.size(), 0);
+				return;
+			}
+		}
+
+		// After a successful mode change, inform all users in the channel.
+		std::string response = "MODE " + channelName + " " + modeStr;
+		if (tokens.size() > 2) {
+			for (size_t i = 2; i < tokens.size(); i++) {
+				response += " " + tokens[i];
+			}
+		}
+		response += "\r\n";
+		_BroadcastToChannel(channelName, response);
+
+	} catch (std::exception &e) {
+		std::string err = "461 MODE " + channelName + " :" + e.what() + "\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+	}
 }
 
 // changes the topic restriction of a channel
@@ -591,6 +683,10 @@ int Server::_findClientFromNickname(std::string nickname) {
 		}
 	}
 	return -1;
+}
+
+void Server::_changeInviteOnlyRestriction(std::string channel, bool flag) {
+    _channels[channel].SetInviteOnly(flag);
 }
 
 // converts a string to a mode enum

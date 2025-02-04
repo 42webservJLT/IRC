@@ -23,6 +23,7 @@ enum Method {
 	TOPIC,
 	MODE,
 	PING,
+	QUIT,
 	INVALID,
 };
 

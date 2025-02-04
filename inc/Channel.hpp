@@ -25,6 +25,7 @@ class Channel {
 		std::vector<int>& GetOperators();
 		std::vector<int>& GetUsers();
 		std::vector<int>& GetInvited();
+		std::string GetPassword() const; // (from channel.cpp)
 
 		void SetName(std::string name);
 		void SetPassword(std::string password);
@@ -32,6 +33,7 @@ class Channel {
 		void SetTopic(std::string topic);
 		void SetInviteOnly(bool inviteOnly);
 		void SetUserLimit(size_t userLimit);
+
 
 		void AddUser(int user);
 		void MakeOperator(int user);
@@ -52,8 +54,6 @@ class Channel {
 		std::vector<int> _operators;
 		std::vector<int> _users;
 		std::vector<int> _invited;
-//		TODO: implement
-		std::string GetPassword() const; // (from channel
 };
 
 
