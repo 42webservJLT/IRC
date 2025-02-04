@@ -28,6 +28,7 @@ std::tuple<Method, std::vector<std::string>> Parser::parse(std::string& msg) con
 		else if (token == "INVITE") method = INVITE;
 		else if (token == "TOPIC") method = TOPIC;
 		else if (token == "MODE") method = MODE;
+		else if (token == "PING") method = PING;
 		else method = INVALID;
 	}
 

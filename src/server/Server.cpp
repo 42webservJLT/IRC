@@ -69,6 +69,7 @@ Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(
 	_methods.insert({INVITE, &Server::Invite});
 	_methods.insert({TOPIC, &Server::Topic});
 	_methods.insert({MODE, &Server::Mode});
+	_methods.insert({PING, &Server::Ping});
 	_methods.insert({INVALID, nullptr});
 
 //	initialize parser
@@ -225,15 +226,29 @@ void Server::RemoveClient(int clientFd) {
 }
 
 bool Server::HandleClient(int clientFd) {
-	char buffer[512];
-	ssize_t bytes = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
-	if (bytes <= 0) {
-		return false; // signals removal
+	try {
+		// Directly call the existing parse-and-respond logic:
+		HandleConnection(clientFd);
+	} catch (const std::exception &e) {
+		std::cerr << "Error handling client: " << e.what() << std::endl;
+		return false;
 	}
-	// otherwise handle the data
 	return true;
 }
 
+// handle PING
+void Server::Ping(int clientFd, const std::vector<std::string> tokens) {
+	// If no parameter was sent, ignore or send an error.
+	if (tokens.size() < 1) {
+		std::string err("409 :No origin specified\r\n");
+		send(clientFd, err.c_str(), err.size(), 0);
+		return;
+	}
+	// typical format: PING <server-name>
+	// respond with PONG <server-name>
+	std::string response = "PONG " + tokens[0] + "\r\n";
+	send(clientFd, response.c_str(), response.size(), 0);
+}
 
 /* --------------------------------------------------------------------------------- */
 /* Client Commands                                                                   */

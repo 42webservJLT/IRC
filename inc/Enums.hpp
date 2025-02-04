@@ -22,6 +22,7 @@ enum Method {
 	INVITE,
 	TOPIC,
 	MODE,
+	PING,
 	INVALID,
 };
 

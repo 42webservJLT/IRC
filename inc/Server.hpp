@@ -49,7 +49,7 @@ class Server {
 		void HandleNewConnection();
 		void HandleConnection(int clientSocket);
 		void HandleDisconnection(int clientSocket);
-
+		void Ping(int clientFd, const std::vector<std::string> tokens);
 		void RemoveClient(int clientFd);
 		bool HandleClient(int clientFd);
 
