@@ -305,8 +305,7 @@ void Server::RegisterClientIfReady(int clientSocket) {
 	}
 }
 
-
-//TODO : have to check if user is already in channel or not
+// joins a channel
 void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 	if (!_clients[clientSocket].GetAuthenticated()) {
 		std::string err = "464 " + _clients[clientSocket].GetNickName() + " JOIN :You're not authenticated\r\n";
@@ -335,6 +334,8 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 		if (!providedKey.empty()) {
 			_channels[channelName].SetPassword(providedKey);
 		}
+		// Assign the creator as an operator using _changeOperatorPrivileges
+		_changeOperatorPrivileges(channelName, _clients[clientSocket].GetNickName(), true);
 		std::cout << "Channel " << channelName << " created." << std::endl;
 	}
 	channel = &_channels[channelName];
@@ -482,21 +483,24 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// Confirm channel exists.
 	if (_channels.find(channelName) == _channels.end()) {
-		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
+		std::string err = "404 " + channelName + " :No such channel\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 	Channel &channel = _channels[channelName];
 
 	// Confirm user is an operator in the channel.
 	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) == channel.GetOperators().end()) {
-		send(clientSocket, ERR_MSG_NO_OPERATOR_PRIVILEGES, std::string(ERR_MSG_NO_OPERATOR_PRIVILEGES).size(), 0);
+		std::string err = "482 " + channelName + " :You're not channel operator\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
 	// Look up the user’s FD by nickname.
 	int userFd = _findClientFromNickname(userName);
 	if (userFd == -1 || std::find(channel.GetUsers().begin(), channel.GetUsers().end(), userFd) == channel.GetUsers().end()) {
-		send(clientSocket, ERR_MSG_USER_NOT_IN_CHANNEL, std::string(ERR_MSG_USER_NOT_IN_CHANNEL).size(), 0);
+		std::string err = "441 " + userName + " :They aren't in the channel\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
