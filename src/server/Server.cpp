@@ -189,7 +189,8 @@ void Server::HandleConnection(int clientSocket) {
 
 			// Handle message
 			if (std::get<0>(vals) == INVALID) {
-				std::string err = "421 " + _clients[clientSocket].GetNickName() + " " + std::get<1>(vals).front() + " :Unknown command\r\n";
+				std::string commandName = (!std::get<1>(vals).empty()) ? std::get<1>(vals).front() : "";
+				std::string err = "421 " + _clients[clientSocket].GetNickName() + " " + commandName + " :Unknown command\r\n";
 				send(clientSocket, err.c_str(), err.size(), 0);
 				continue; // Continue processing other commands
 			}
@@ -358,6 +359,13 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 			return;
 		}
 	}
+
+	// check if user is already in the channel
+	if (std::find(channel->GetUsers().begin(), channel->GetUsers().end(), clientSocket) != channel->GetUsers().end()) {
+		std::string err = "443 " + _clients[clientSocket].GetNickName() + " " + channelName + " :You are already on that channel\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
 	// add user & remove invitation if present
 	channel->AddUser(clientSocket);
 	std::vector<int>& invited = channel->GetInvited();
@@ -371,50 +379,47 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 
 // sends a private message
 void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
+	if (!_clients[clientSocket].GetAuthenticated()) {
+		std::string err = "464 " + _clients[clientSocket].GetNickName() + " PRIVMSG :You are not authenticated\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
 	if (tokens.size() < 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, strlen(ERR_MSG_INVALID_COMMAND), 0);
 		return;
 	}
-
 	std::string target = tokens[0];
 	std::string message = tokens[1];
-	// Reconstruct message if there are more tokens
 	for (size_t i = 2; i < tokens.size(); ++i) {
 		message += " " + tokens[i];
 	}
-
-	// Check if target is a channel
+	// If target is a channel, ensure it exists and user is in it.
 	if (target[0] == '#') {
 		if (_channels.find(target) == _channels.end()) {
 			send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, strlen(ERR_MSG_CHANNEL_NOT_FOUND), 0);
 			return;
 		}
-
 		Channel &channel = _channels[target];
 		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) == channel.GetUsers().end()) {
 			send(clientSocket, ERR_MSG_USER_NOT_IN_CHANNEL, strlen(ERR_MSG_USER_NOT_IN_CHANNEL), 0);
 			return;
 		}
-
-		// Forward message to all users in the channel except the sender
+		// Broadcast to channel
+		std::string fullMsg = ":" + _clients[clientSocket].GetNickName() + " PRIVMSG " + target + " :" + message + "\r\n";
 		for (int userFd : channel.GetUsers()) {
 			if (userFd != clientSocket) {
-				std::string fullMessage = "PRIVMSG " + target + " :" + message + "\n";
-				send(userFd, fullMessage.c_str(), fullMessage.size(), 0);
+				send(userFd, fullMsg.c_str(), fullMsg.size(), 0);
 			}
 		}
-	}
-	// Target is a user
-	else {
+	} else {
+		// Direct message
 		int targetFd = _findClientFromNickname(target);
 		if (targetFd == -1) {
 			send(clientSocket, ERR_MSG_USER_NOT_FOUND, strlen(ERR_MSG_USER_NOT_FOUND), 0);
 			return;
 		}
-
-		// Send the message to the target user
-		std::string fullMessage = "PRIVMSG " + target + " :" + message + "\n";
-		send(targetFd, fullMessage.c_str(), fullMessage.size(), 0);
+		std::string fullMsg = ":" + _clients[clientSocket].GetNickName() + " PRIVMSG " + target + " :" + message + "\r\n";
+		send(targetFd, fullMsg.c_str(), fullMsg.size(), 0);
 	}
 }
 
@@ -462,33 +467,49 @@ void Server::Quit(int clientSocket, const std::vector<std::string>& tokens) {
 /* --------------------------------------------------------------------------------- */
 // kicks a user from a channel
 void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
-	if (tokens.size() != 2) {
+	// Need at least channel + user.
+	if (tokens.size() < 2) {
 		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
 		return;
 	}
-//	check whether channel exists
-	if (_channels.find(tokens[0]) != _channels.end()) {
-		int userFd = _findClientFromNickname(tokens[1]);
-		if (userFd == -1) {
-			send(clientSocket, ERR_MSG_USER_NOT_IN_CHANNEL, std::string(ERR_MSG_USER_NOT_IN_CHANNEL).size(), 0);
-			return;
-		}
-		auto channel = _channels[tokens[0]];
-//		check whether user is operator
-		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) != channel
-		.GetOperators()
-		.end()) {
-//			check whether user is in channel
-			if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), userFd) != channel.GetUsers().end()) {
-				channel.RemoveUser(userFd);
-			} else {
-				send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
-			}
-		} else {
-			send(clientSocket, ERR_MSG_USER_NOT_IN_CHANNEL, std::string(ERR_MSG_USER_NOT_IN_CHANNEL).size(), 0);
-		}
-	} else {
+	std::string channelName = tokens[0];
+	std::string userName    = tokens[1];
+	// Build optional reason from any remaining tokens.
+	std::string reason = (tokens.size() > 2) ? tokens[2] : "Kicked";
+	for (size_t i = 3; i < tokens.size(); i++) {
+		reason += " " + tokens[i];
+	}
+
+	// Confirm channel exists.
+	if (_channels.find(channelName) == _channels.end()) {
 		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
+		return;
+	}
+	Channel &channel = _channels[channelName];
+
+	// Confirm user is an operator in the channel.
+	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) == channel.GetOperators().end()) {
+		send(clientSocket, ERR_MSG_NO_OPERATOR_PRIVILEGES, std::string(ERR_MSG_NO_OPERATOR_PRIVILEGES).size(), 0);
+		return;
+	}
+
+	// Look up the user’s FD by nickname.
+	int userFd = _findClientFromNickname(userName);
+	if (userFd == -1 || std::find(channel.GetUsers().begin(), channel.GetUsers().end(), userFd) == channel.GetUsers().end()) {
+		send(clientSocket, ERR_MSG_USER_NOT_IN_CHANNEL, std::string(ERR_MSG_USER_NOT_IN_CHANNEL).size(), 0);
+		return;
+	}
+
+	// Notify the kicked user.
+	std::string kickMsg = ":" + _clients[clientSocket].GetNickName() + " KICK " + channelName + " " + userName + " :" + reason + "\r\n";
+	send(userFd, kickMsg.c_str(), kickMsg.size(), 0);
+
+	// Remove the user from the channel.
+	channel.RemoveUser(userFd);
+
+	// Broadcast to remaining channel members.
+	for (int memberFd : channel.GetUsers()) {
+		send(memberFd, kickMsg.c_str(), kickMsg.size(), 0);
 	}
 }
 

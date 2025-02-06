@@ -26,16 +26,17 @@
 #define MAX_CONNECTIONS SOMAXCONN
 #define NO_USER_LIMIT 0
 
-#define ERR_MSG_UNAUTHENTICATED "You are not authenticated yet\n"
-#define ERR_MSG_INVALID_COMMAND "Invalid command\n"
-#define ERR_MSG_CHANNEL_NOT_FOUND "Channel not found\n"
-#define ERR_MSG_CHANNEL_NOT_INVITED "You are not invited to this channel\n"
-#define ERR_MSG_CHANNEL_FULL "Channel is full\n"
-#define ERR_MSG_NOT_A_CHANNEL_OPERATOR "You are not a channel operator\n"
-#define ERR_MSG_USER_NOT_FOUND "User not found\n"
-#define ERR_MSG_USER_NOT_IN_CHANNEL "User is not in channel\n"
+#define ERR_MSG_UNAUTHENTICATED "You are not authenticated yet\r\n"
+#define ERR_MSG_INVALID_COMMAND "Invalid command\r\n"
+#define ERR_MSG_CHANNEL_NOT_FOUND "Channel not found\r\n"
+#define ERR_MSG_CHANNEL_NOT_INVITED "You are not invited to this channel\r\n"
+#define ERR_MSG_CHANNEL_FULL "Channel is full\r\n"
+#define ERR_MSG_NOT_A_CHANNEL_OPERATOR "You are not a channel operator\r\n"
+#define ERR_MSG_USER_NOT_FOUND "User not found\r\n"
+#define ERR_MSG_USER_NOT_IN_CHANNEL "User is not in channel\r\n"
+#define ERR_MSG_NO_OPERATOR_PRIVILEGES "482 :You're not channel operator\r\n"
 
-#define INVITED_MSG(channel, user) "You have been invited to channel " + channel + "\n"
+#define INVITED_MSG(channel, user) "You have been invited to channel " + channel + "\r\n"
 
 class Server {
 	public:

@@ -9,7 +9,13 @@ services:
 #    networks:
 #        - irc_network
 
-
+  weechat2:
+    container_name: weechat2
+    image: weechat/weechat:latest-slim
+    ports:
+      - "6696:6696"
+    command: ["sleep", "infinity"]
+    network_mode: "host"
 #  irc:
 #    container_name: irc
 #    build:
