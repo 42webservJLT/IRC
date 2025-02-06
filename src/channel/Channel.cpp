@@ -97,7 +97,9 @@ void Channel::AddUser(int user) {
 
 // makes a user operator of the channel
 void Channel::MakeOperator(int user) {
-	// TODO: check whether operator needs to have been a user first
+	if (IsUserOperator(user)) {
+		return;
+	}
 	_operators.push_back(user);
 }
 
@@ -115,4 +117,8 @@ void Channel::RemoveUser(const int user) {
 	if (it != _users.end()) {
 		_users.erase(it);
 	}
+}
+
+bool Channel::IsUserOperator(int user) {
+	return std::find(_operators.begin(), _operators.end(), user) != _operators.end();
 }
