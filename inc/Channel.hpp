@@ -39,6 +39,7 @@ class Channel {
 		void MakeOperator(int user);
 		void RemoveOperator(int user);
 		void RemoveUser(int user);
+		bool IsUserOperator(int user);
 //		TODO: end
 
 	private:
