@@ -319,7 +319,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 	}
 	if (tokens.size() < 1 || tokens.size() > 2) {
 		std::string err = "461 JOIN :Incorrect amount for parameters\r\n";
-		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 	std::string channelName = tokens[0];
@@ -386,7 +386,8 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 		return;
 	}
 	if (tokens.size() < 2) {
-		send(clientSocket, ERR_MSG_INVALID_COMMAND, strlen(ERR_MSG_INVALID_COMMAND), 0);
+		std::string err = "461 PRIVMSG :Not enough parameters\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 	std::string target = tokens[0];
@@ -397,12 +398,14 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 	// If target is a channel, ensure it exists and user is in it.
 	if (target[0] == '#') {
 		if (_channels.find(target) == _channels.end()) {
-			send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, strlen(ERR_MSG_CHANNEL_NOT_FOUND), 0);
+			std::string err = "403 " + target + " :No such channel\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
 		Channel &channel = _channels[target];
 		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) == channel.GetUsers().end()) {
-			send(clientSocket, ERR_MSG_USER_NOT_IN_CHANNEL, strlen(ERR_MSG_USER_NOT_IN_CHANNEL), 0);
+			std::string err = "442 " + _clients[clientSocket].GetNickName() + " " + target + " :You're not on that channel\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
 		// Broadcast to channel
@@ -416,7 +419,8 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 		// Direct message
 		int targetFd = _findClientFromNickname(target);
 		if (targetFd == -1) {
-			send(clientSocket, ERR_MSG_USER_NOT_FOUND, strlen(ERR_MSG_USER_NOT_FOUND), 0);
+			std::string err = "401 " + target + " :No such nick\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
 		std::string fullMsg = ":" + _clients[clientSocket].GetNickName() + " PRIVMSG " + target + " :" + message + "\r\n";
@@ -470,7 +474,8 @@ void Server::Quit(int clientSocket, const std::vector<std::string>& tokens) {
 void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 	// Need at least channel + user.
 	if (tokens.size() < 2) {
-		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+		std::string err = "461 KICK :Not enough parameters\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 	std::string channelName = tokens[0];
@@ -520,14 +525,16 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 // invites a user to a channel
 void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 2) {
-		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+		std::string err = "461 INVITE :Not enough parameters\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 //	check whether channel exists
 	if (_channels.find(tokens[0]) != _channels.end()) {
 		int userFd = _findClientFromNickname(tokens[1]);
 		if (userFd == -1) {
-			send(clientSocket, ERR_MSG_USER_NOT_FOUND, std::string(ERR_MSG_USER_NOT_FOUND).size(), 0);
+			std::string err = "401 " + tokens[1] + " :No such nick\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
 		auto channel = _channels[tokens[0]];
@@ -539,17 +546,20 @@ void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 			std::string msg = INVITED_MSG(tokens[0], tokens[1]);
 			send(clientSocket, msg.c_str(), msg.size(), 0);
 		} else {
-			send(clientSocket, ERR_MSG_NOT_A_CHANNEL_OPERATOR, std::string(ERR_MSG_NOT_A_CHANNEL_OPERATOR).size(), 0);
+			std::string err = "482 " + tokens[0] + " :You're not channel operator\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
 		}
 	} else {
-		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
+		std::string err = "403 " + tokens[0] + " :No such channel\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 	}
 }
 
 // sets the topic of a channel
 void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 2) {
-		send(clientSocket, ERR_MSG_INVALID_COMMAND, std::string(ERR_MSG_INVALID_COMMAND).size(), 0);
+		std::string err = "461 TOPIC :Not enough parameters\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 //	check whether channel exists
@@ -559,10 +569,12 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) != channel.GetOperators().end()) {
 			channel.SetTopic(tokens[1]);
 		} else {
-			send(clientSocket, ERR_MSG_NOT_A_CHANNEL_OPERATOR, std::string(ERR_MSG_NOT_A_CHANNEL_OPERATOR).size(), 0);
+			std::string err = "482 " + tokens[0] + " :You're not channel operator\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
 		}
 	} else {
-		send(clientSocket, ERR_MSG_CHANNEL_NOT_FOUND, std::string(ERR_MSG_CHANNEL_NOT_FOUND).size(), 0);
+		std::string err = "403 " + tokens[0] + " :No such channel\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
 	}
 }
 
