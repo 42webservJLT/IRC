@@ -1,6 +1,5 @@
 test and fix:
 
+fix /mode also have to check /invite becuase apparently there is no user after using /nick
 
-the message at channel doesn't work (/msg or /privmsg) neither message or error
-
-have to remove user from cahnnel, when he switches to another one 
+have to remove user from cahnnel, when he switches to another one
