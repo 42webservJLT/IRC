@@ -17,7 +17,7 @@ enum Method {
 	NICK,
 	USER,
 	JOIN,
-	PRIVMSG,
+	MSG,
 	KICK,
 	INVITE,
 	TOPIC,

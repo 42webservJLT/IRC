@@ -1,4 +1,5 @@
 #include "Parser.hpp"
+#include <iostream>
 
 Parser::Parser() {
 
@@ -8,38 +9,52 @@ Parser::~Parser() {
 
 }
 
-std::tuple<Method, std::vector<std::string>> Parser::parse(std::string& msg) const {
+std::tuple<Method, std::vector<std::string>> Parser::parse(const std::string &msg) const {
+	std::cout << "Parsing message: " << msg << std::endl;
 	std::vector<std::string> tokens;
-	std::string token;
 	std::istringstream tokenStream(msg);
-	Method method = INVALID;
+	std::string token;
 
-	// Get first token (command)
-	if (std::getline(tokenStream, token, ' ')) {
-		// Convert to uppercase for case-insensitive comparison
-		std::transform(token.begin(), token.end(), token.begin(), ::toupper);
-
-		if (token == "PASS") method = AUTHENTICATE;
-		else if (token == "NICK") method = NICK;
-		else if (token == "USER") method = USER;
-		else if (token == "JOIN") method = JOIN;
-		else if (token == "PRIVMSG") method = PRIVMSG;
-		else if (token == "KICK") method = KICK;
-		else if (token == "INVITE") method = INVITE;
-		else if (token == "TOPIC") method = TOPIC;
-		else if (token == "MODE") method = MODE;
-		else if (token == "PING") method = PING;
-		else if (token == "QUIT") method = QUIT;
-		// tokens that are not implemented becuase the subject doesn't require them. can ignore or reply with 421 Unknown command
-		else if (token == "PART" || token == "LIST" || token == "NAMES" || token == "WHO" || token == "WHOIS" || token == "WHOWAS" || token == "MOTD" || token == "LUSERS" || token == "VERSION" || token == "STATS" || token == "LINKS" || token == "TIME" || token == "CONNECT" || token == "TRACE" || token == "ADMIN" || token == "INFO" || token == "SERVLIST" || token == "SQUERY" || token == "SILENCE" || token == "REHASH" || token == "DIE" || token == "RESTART" || token == "SUMMON" || token == "USERS" || token == "WALLOPS" || token == "USERHOST" || token == "ISON") method = INVALID;
-		else method = INVALID;
-	}
-
-	while (std::getline(tokenStream, token, ' ')) {
-		if (!token.empty()) {
-			tokens.push_back(token);
+	// Split on whitespace, except if token starts with ':'
+	while (tokenStream >> token) {
+		if (!token.empty() && token[0] == ':') {
+			// Everything else goes into one trailing token
+			std::string trailingParam = token.substr(1);
+			std::string rest;
+			std::getline(tokenStream, rest);
+			if (!rest.empty())
+				trailingParam += rest;
+			tokens.push_back(trailingParam);
+			break;
 		}
+		tokens.push_back(token);
 	}
 
-	return std::make_tuple(method, tokens);
+	// Determine the command
+	Method method = INVALID;
+	if (!tokens.empty()) {
+		std::string command = tokens[0];
+		std::transform(command.begin(), command.end(), command.begin(), ::toupper);
+		if (command == "PASS")     method = AUTHENTICATE;
+		else if (command == "NICK") method = NICK;
+		else if (command == "USER") method = USER;
+		else if (command == "JOIN") method = JOIN;
+		else if (command == "PRIVMSG") method = MSG;
+		else if (command == "KICK") method = KICK;
+		else if (command == "INVITE") method = INVITE;
+		else if (command == "TOPIC")  method = TOPIC;
+		else if (command == "MODE")   method = MODE;
+		else if (command == "PING")   method = PING;
+		else if (command == "QUIT")   method = QUIT;
+		else                          method = INVALID;
+	}
+
+	// Remove the first token (the command) to leave only parameters
+	std::vector<std::string> params;
+	if (tokens.size() > 1) {
+		params.assign(tokens.begin() + 1, tokens.end());
+	}
+	std::cout << "Parsed method: " << method << std::endl;
+	std::cout << "tokens = " << tokens.size() << std::endl;
+	return std::make_tuple(method, params);
 }

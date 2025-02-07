@@ -64,7 +64,7 @@ Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(
 	_methods.emplace(NICK,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Nick));
 	_methods.emplace(USER,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::User));
 	_methods.emplace(JOIN,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Join));
-	_methods.emplace(PRIVMSG,    static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::PrivMsg));
+	_methods.emplace(MSG,    static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::PrivMsg));
 	_methods.emplace(KICK,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Kick));
 	_methods.emplace(INVITE,     static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Invite));
 	_methods.emplace(TOPIC,      static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Topic));
@@ -169,7 +169,6 @@ void Server::HandleNewConnection() {
 // handles a connection
 void Server::HandleConnection(int clientSocket) {
 	char buffer[MAX_BUFFER_SIZE + 1];
-	// std::memset(buffer, 0, MAX_BUFFER_SIZE + 1);
 	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t bytesRead = recv(clientSocket, buffer, MAX_BUFFER_SIZE, 0);
 	if (bytesRead > 0) {
@@ -277,8 +276,43 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
-	_clients[clientSocket].SetNickName(tokens[0]);
-	// Check if PASS was correct & user is set
+
+	std::string oldNick = _clients[clientSocket].GetNickName();
+	std::string newNick = tokens[0];
+
+	// 1. Check if someone else already uses this nickname.
+	for (std::map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it) {
+		if (it->first != clientSocket && it->second.GetNickName() == newNick) {
+			std::string err = "433 " + newNick + " :Nickname is already in use\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
+			return;
+		}
+	}
+
+	// 2. Handle the same-nick scenario (optional).
+	if (newNick == oldNick) {
+		std::string err = "433 " + newNick + " :Nickname is already in use\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
+	// 3. Assign the new nickname.
+	_clients[clientSocket].SetNickName(newNick);
+
+	// 4. Broadcast the nick change to the channels.
+	std::string nickMsg = ":" + oldNick + " NICK :" + newNick + "\r\n";
+	for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it) {
+		Channel &channel = it->second;
+		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) != channel.GetUsers().end()) {
+			for (int memberFd : channel.GetUsers()) {
+				if (memberFd != clientSocket) {
+					send(memberFd, nickMsg.c_str(), nickMsg.size(), 0);
+				}
+			}
+		}
+	}
+
+	// 5. Attempt to register if PASS, NICK, and USER are set.
 	RegisterClientIfReady(clientSocket);
 }
 
@@ -381,12 +415,12 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 // sends a private message
 void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 	if (!_clients[clientSocket].GetAuthenticated()) {
-		std::string err = "464 " + _clients[clientSocket].GetNickName() + " PRIVMSG :You are not authenticated\r\n";
+		std::string err = "464 " + _clients[clientSocket].GetNickName() + " MSG :You are not authenticated\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 	if (tokens.size() < 2) {
-		std::string err = "461 PRIVMSG :Not enough parameters\r\n";
+		std::string err = "461 MSG :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -395,7 +429,10 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 	for (size_t i = 2; i < tokens.size(); ++i) {
 		message += " " + tokens[i];
 	}
-	// If target is a channel, ensure it exists and user is in it.
+	std::string fullMsg = ":" + _clients[clientSocket].GetNickName() +
+						" PRIVMSG " + target + " :" + message + "\r\n";
+
+	// If target is a channel, ensure it exists and that client is in it.
 	if (target[0] == '#') {
 		if (_channels.find(target) == _channels.end()) {
 			std::string err = "403 " + target + " :No such channel\r\n";
@@ -408,23 +445,25 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
-		// Broadcast to channel
-		std::string fullMsg = ":" + _clients[clientSocket].GetNickName() + " PRIVMSG " + target + " :" + message + "\r\n";
+		// Broadcast the message to each user in the channel.
 		for (int userFd : channel.GetUsers()) {
-			if (userFd != clientSocket) {
-				send(userFd, fullMsg.c_str(), fullMsg.size(), 0);
+			ssize_t sentBytes = send(userFd, fullMsg.c_str(), fullMsg.size(), 0);
+			if (sentBytes == -1) {
+				perror("Error sending MSG to user");
+				std::cerr << "Failed to send MSG to FD " << userFd << ", message: " << fullMsg << std::endl;
 			}
 		}
 	} else {
-		// Direct message
+		// Direct message to a user.
 		int targetFd = _findClientFromNickname(target);
 		if (targetFd == -1) {
 			std::string err = "401 " + target + " :No such nick\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
-		std::string fullMsg = ":" + _clients[clientSocket].GetNickName() + " PRIVMSG " + target + " :" + message + "\r\n";
-		send(targetFd, fullMsg.c_str(), fullMsg.size(), 0);
+		if (send(targetFd, fullMsg.c_str(), fullMsg.size(), 0) == -1) {
+			perror("send");
+		}
 	}
 }
 

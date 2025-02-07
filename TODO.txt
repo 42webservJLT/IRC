@@ -1,9 +1,6 @@
 test and fix:
 
-first : /nick Tester, then : /user Tester * * :RealName
-gives no output, should give:No “You have not registered” or “You are not authenticated” errors.
 
 the message at channel doesn't work (/msg or /privmsg) neither message or error
 
-/kick doesn't work
-
+have to remove user from cahnnel, when he switches to another one 
