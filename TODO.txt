@@ -1,5 +1,9 @@
 test and fix:
 
-fix /mode also have to check /invite becuase apparently there is no user after using /nick
+/invite (maybe display a message for the perosn that was bein invited to let them know)
 
-have to remove user from cahnnel, when he switches to another one
+messages at the channel dont get displayed
+
+/quit ? message in channels where the  person is a member of ? already displays the message inm private message channels. maybe need to check if weechat needs permissions to post in channels
+
+need to read more about weechat WIP
