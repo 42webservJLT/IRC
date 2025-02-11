@@ -224,6 +224,8 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 		}
 		// Broadcast to all members in the channel (including sender).
 		for (int userFd : channel.GetUsers()) {
+			if (userFd == clientSocket)
+				continue; // Skip sending to sender to avoid duplicate display.
 			if (send(userFd, fullMsg.c_str(), fullMsg.size(), 0) == -1) {
 				perror("Error sending PRIVMSG to channel user");
 			}
