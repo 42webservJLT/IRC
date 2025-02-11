@@ -16,6 +16,7 @@ SRC := $(addprefix $(SRCDIR)/$(SERVERDIR)/, \
 	ClientCommands.cpp \
 	Connections.cpp \
 	Helpers.cpp \
+	ModeCommand.cpp \
 	OperatorCommands.cpp \
 	Server.cpp)
 SRC += $(addprefix $(SRCDIR)/$(CHANNELDIR)/, Channel.cpp)
