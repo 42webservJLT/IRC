@@ -16,10 +16,6 @@ make start
 docker exec  -it weechat weechat
 weechat
 ```
-```weechat
-/server add irc  host.docker.internal/6667 -notls
-/connect irc -password=abc
-```
 
 # Commands
 ## Server Commands
