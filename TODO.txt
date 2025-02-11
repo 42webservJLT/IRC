@@ -7,3 +7,7 @@ messages at the channel dont get displayed
 /quit ? message in channels where the  person is a member of ? already displays the message inm private message channels. maybe need to check if weechat needs permissions to post in channels
 
 need to read more about weechat WIP
+
+message in a channel gets displayed twice for the person posting because I brodcast to the user and the channel
+
+when trying to enter a channel with a passkey and the passkey provided is wrong. add an error message

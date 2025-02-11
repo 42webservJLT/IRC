@@ -381,7 +381,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 
 		// If channel name doesn't start with '#', return an error.
 		if (!channelName.empty() && channelName[0] != '#') {
-			std::string err = "479 " + _clients[clientSocket].GetNickName() + " " + channelName + 
+			std::string err = "479 " + _clients[clientSocket].GetNickName() + " " + channelName +
 							" :Channel name must begin with '#'\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
@@ -400,7 +400,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 
 		Channel* channel = &_channels[channelName];
 		if (channel->GetUserLimit() > NO_USER_LIMIT && channel->GetUsers().size() >= channel->GetUserLimit()) {
-			std::string err = "471 " + _clients[clientSocket].GetNickName() + " " + channelName + 
+			std::string err = "471 " + _clients[clientSocket].GetNickName() + " " + channelName +
 							" :Cannot join channel, User limit exceeded (+l)\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
@@ -413,13 +413,13 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 			continue;
 		}
 		if (!channel->GetPassword().empty() && providedKey != channel->GetPassword()) {
-			std::string err = "475 " + _clients[clientSocket].GetNickName() + " " + channelName + 
+			std::string err = "475 " + _clients[clientSocket].GetNickName() + " " + channelName +
 							" :Cannot join channel (+k)\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
 		}
 		if (std::find(channel->GetUsers().begin(), channel->GetUsers().end(), clientSocket) != channel->GetUsers().end()) {
-			std::string err = "443 " + _clients[clientSocket].GetNickName() + " " + channelName + 
+			std::string err = "443 " + _clients[clientSocket].GetNickName() + " " + channelName +
 							" :You are already on that channel\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
@@ -471,7 +471,7 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 
     // Build a more standard prefix like: nick!user@host
     std::string prefix = _clients[clientSocket].GetNickName() + "!" +
-                         _clients[clientSocket].GetUserName() + 
+                         _clients[clientSocket].GetUserName() +
                          "@127.0.0.1"; // or your actual IP/host
 
     // 4) Full message to relay: ":<nick!user@host> PRIVMSG <target> :<message>"
@@ -492,10 +492,12 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
         }
         // Broadcast to all members in the channel (including sender).
         for (int userFd : channel.GetUsers()) {
-            if (send(userFd, fullMsg.c_str(), fullMsg.size(), 0) == -1) {
-                perror("Error sending PRIVMSG to channel user");
-            }
-        }
+		if (userFd == clientSocket)
+			continue; // Skip sending to sender to avoid duplicate display.
+		if (send(userFd, fullMsg.c_str(), fullMsg.size(), 0) == -1) {
+			perror("Error sending PRIVMSG to channel user");
+		}
+	}
     } else {
         // 6) Otherwise, treat as direct message to a nick.
         int targetFd = _findClientFromNickname(target);
