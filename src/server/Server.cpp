@@ -275,16 +275,6 @@ void Server::_changeUserLimitRestriction(std::string channel, size_t userLimit) 
 	_channels[channel].SetUserLimit(userLimit);
 }
 
-// finds a user from a nickname
-int Server::_findClientFromNickname(std::string nickname) {
-	for (auto it = _clients.begin(); it != _clients.end(); ++it) {
-		if (it->second.GetNickName() == nickname) {
-			return it->first;
-		}
-	}
-	return -1;
-}
-
 // changes the invite only restriction of a channel
 void Server::_changeInviteOnlyRestriction(std::string channel, bool flag) {
 	_channels[channel].SetInviteOnly(flag);

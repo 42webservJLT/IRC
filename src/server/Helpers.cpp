@@ -30,3 +30,13 @@ Mode _strToModeEnum(std::string str) {
 		return INVALID_MODE;
 	}
 }
+
+// finds a user from a nickname
+int Server::_findClientFromNickname(std::string nickname) {
+	for (auto it = _clients.begin(); it != _clients.end(); ++it) {
+		if (it->second.GetNickName() == nickname) {
+			return it->first;
+		}
+	}
+	return -1;
+}
