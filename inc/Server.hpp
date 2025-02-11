@@ -43,6 +43,7 @@ class Server {
 		void Ping(int clientFd, const std::vector<std::string>& tokens);
 		void RemoveClient(int clientFd);
 		bool HandleClient(int clientFd);
+
 //		verification methods
 		void Authenticate(int clientSocket, const std::vector<std::string>& tokens);
 		void RegisterClientIfReady(int clientSocket);
@@ -58,7 +59,16 @@ class Server {
 		void Kick(int clientSocket, const std::vector<std::string>& tokens);
 		void Invite(int clientSocket, const std::vector<std::string>& tokens);
 		void Topic(int clientSocket, const std::vector<std::string>& tokens);
+
+//		operator Mode command & sub commands
 		void Mode(int clientSocket, const std::vector<std::string>& tokens);
+		void _changeInviteOnlyRestriction(std::string channel, bool isInviteOnly);
+		void _changeTopicRestriction(std::string channel, bool isTopicOnlySettableByOperator);
+		void _changePasswordRestriction(std::string channel, std::string password);
+		void _changeOperatorPrivileges(std::string channel, std::string user, bool isOperator);
+		void _changeUserLimitRestriction(std::string channel, size_t userLimit);
+		int _findClientFromNickname(std::string nickname);
+		void _BroadcastToChannel(const std::string &channelName, const std::string &msg);
 
 //		getters
 		std::string GetHost() const;
@@ -82,16 +92,9 @@ class Server {
 //		instance of parser class
 		Parser _parser;
 		int _listeningFd;
-
-//		mode sub commands
-		void _changeInviteOnlyRestriction(std::string channel, bool isInviteOnly);
-		void _changeTopicRestriction(std::string channel, bool isTopicOnlySettableByOperator);
-		void _changePasswordRestriction(std::string channel, std::string password);
-		void _changeOperatorPrivileges(std::string channel, std::string user, bool isOperator);
-		void _changeUserLimitRestriction(std::string channel, size_t userLimit);
-		int _findClientFromNickname(std::string nickname);
-		void _BroadcastToChannel(const std::string &channelName, const std::string &msg);
 };
+
+Mode _strToModeEnum(std::string str);
 
 
 #endif //IRC_SERVER_H

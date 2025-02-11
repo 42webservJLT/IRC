@@ -11,7 +11,13 @@ CLIENTDIR = client
 CHANNELDIR = channel
 PARSERDIR = parser
 
-SRC := $(addprefix $(SRCDIR)/$(SERVERDIR)/, Server.cpp)
+SRC := $(addprefix $(SRCDIR)/$(SERVERDIR)/, \
+	Authentication.cpp \
+	ClientCommands.cpp \
+	Connections.cpp \
+	Helpers.cpp \
+	OperatorCommands.cpp \
+	Server.cpp)
 SRC += $(addprefix $(SRCDIR)/$(CHANNELDIR)/, Channel.cpp)
 SRC += $(addprefix $(SRCDIR)/$(CLIENTDIR)/, Client.cpp)
 SRC += $(addprefix $(SRCDIR)/$(PARSERDIR)/, Parser.cpp)
