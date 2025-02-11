@@ -10,6 +10,7 @@
 /* --------------------------------------------------------------------------------- */
 // kicks a user from a channel
 void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
+	std::cout << "kick command" << "\n";
 	// Need at least channel + user.
 	if (tokens.size() < 2) {
 		std::string err = "461 KICK :Not enough parameters\r\n";
@@ -39,6 +40,8 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 		return;
 	}
 
+	std::cout << "is operator: " << "\n";
+
 	// Look up the user’s FD by nickname.
 	int userFd = _findClientFromNickname(userName);
 	if (userFd == -1 || std::find(channel.GetUsers().begin(), channel.GetUsers().end(), userFd) == channel.GetUsers().end()) {
@@ -47,17 +50,26 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 		return;
 	}
 
+	std::cout << "user found: " << "\n";
+
 	// Notify the kicked user.
 	std::string kickMsg = ":" + _clients[clientSocket].GetNickName() + " KICK " + channelName + " " + userName + " :" + reason + "\r\n";
+	std::cout << "kick message: " << kickMsg << "\n";
 	send(userFd, kickMsg.c_str(), kickMsg.size(), 0);
+
+	std::cout << "sent kick message to kicked user: " << "\n";
 
 	// Remove the user from the channel.
 	channel.RemoveUser(userFd);
+
+	std::cout << "removed user from channel: " << "\n";
 
 	// Broadcast to remaining channel members.
 	for (int memberFd : channel.GetUsers()) {
 		send(memberFd, kickMsg.c_str(), kickMsg.size(), 0);
 	}
+
+	std::cout << "broadcasted kick message to remaining channel members: " << "\n";
 }
 
 // invites a user to a channel
