@@ -66,7 +66,8 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// Broadcast to remaining channel members.
 	for (int memberFd : channel.GetUsers()) {
-		send(memberFd, kickMsg.c_str(), kickMsg.size(), 0);
+		if (memberFd != userFd)
+			send(memberFd, kickMsg.c_str(), kickMsg.size(), 0);
 	}
 
 	std::cout << "broadcasted kick message to remaining channel members: " << "\n";
