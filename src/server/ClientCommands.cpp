@@ -115,10 +115,21 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 
 		// If channel name doesn't start with '#', return an error.
 		if (!channelName.empty() && channelName[0] != '#') {
-			std::string err = ":" + _clients[clientSocket].GetNickName() + " 479 " + channelName +
-							  " :Channel name must begin with '#'\r\n";
-			send(clientSocket, err.c_str(), err.size(), 0);
-			continue;
+			// Instead of instantly throwing an error, treat this as a request to join a private message channel.
+			// We assume private channels use the naming convention: "#pm-<lowerNick>-<higherNick>"
+			std::string senderNick = _clients[clientSocket].GetNickName();
+			std::string targetNick = channelName;
+			std::vector<std::string> nicks = {senderNick, targetNick};
+			std::sort(nicks.begin(), nicks.end());
+			std::string pmChannel = "#pm-" + nicks[0] + "-" + nicks[1];
+			if (_channels.find(pmChannel) == _channels.end()) {
+				std::string err = ":" + senderNick + " 404 " + targetNick +
+								" :No private message channel with that user\r\n";
+				send(clientSocket, err.c_str(), err.size(), 0);
+				continue;
+			}
+			// Use the found PM channel name for further processing.
+			channelName = pmChannel;
 		}
 
 		// if channel doesn't exist, create it
@@ -134,9 +145,9 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 
 		Channel* channel = &_channels[channelName];
 		if (std::find(channel->GetUsers().begin(), channel->GetUsers().end(), clientSocket) != channel->GetUsers().end()) {
-//			std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " + channelName +
-//							  " :You are already on that channel\r\n";
-//			send(clientSocket, err.c_str(), err.size(), 0);
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " + channelName +
+							  " :You are already on that channel\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
 		}
 		if (channel->GetUserLimit() > NO_USER_LIMIT && channel->GetUsers().size() >= channel->GetUserLimit()) {

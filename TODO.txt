@@ -12,4 +12,7 @@ when trying to enter a channel with a passkey and the passkey provided is wrong.
 
 when doing /nick it tries to reconnect. need to look if thats ok or just skip the error message//
 
-implement bein able to send messages in snippets (ctrl + d)
+implement being able to send messages in snippets (ctrl + d)
+
+topic gets displayed wrong. also need to show topic when joining a new channel, that has a topic.
+
