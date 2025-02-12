@@ -40,3 +40,10 @@ int Server::_findClientFromNickname(std::string nickname) {
 	}
 	return -1;
 }
+
+std::string _errMsg(const std::string& nick, const std::string& code, const std::string& msg, const std::string&
+reason) {
+	std::ostringstream err;
+	err << ":" << nick << " " << code << " " << msg << " :" << reason << "\r\n";
+	return err.str();
+}
