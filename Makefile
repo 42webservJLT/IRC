@@ -47,13 +47,19 @@ fclean: clean
 re: fclean all
 
 start:
-	docker compose up --remove-orphans
+	docker compose up --remove-orphans -d
+
+stop:
+	docker compose down
 
 server:
-	docker exec -it irc /bin/bash -c "./ircserv 6697 abc"
+	./ircserv 6667 abc
 
 client:
 	docker exec -it weechat weechat
+
+client2:
+	docker exec -it weechat2 weechat
 
 lint:
 	cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude ./src
