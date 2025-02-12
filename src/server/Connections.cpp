@@ -24,10 +24,6 @@ void Server::HandleNewConnection() {
 		_clients[clientFd] = Client(clientFd);
 		std::cout << "New connection from FD: " << clientFd << std::endl;
 	}
-	else if (errno != EAGAIN && errno != EWOULDBLOCK) {
-		std::cerr << "Failed to accept new connection: " << strerror(errno) << std::endl;
-		// Don’t exit here—just log the error
-	}
 }
 
 // handles a connection
