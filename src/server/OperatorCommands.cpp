@@ -13,7 +13,7 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 	std::cout << "kick command" << "\n";
 	// Need at least channel + user.
 	if (tokens.size() < 2) {
-		std::string err = "461 KICK :Not enough parameters\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 KICK :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -27,7 +27,7 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// Confirm channel exists.
 	if (_channels.find(channelName) == _channels.end()) {
-		std::string err = "404 " + channelName + " :No such channel\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 404 " + channelName + " :No such channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -35,7 +35,7 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// Confirm user is an operator in the channel.
 	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) == channel.GetOperators().end()) {
-		std::string err = "482 " + channelName + " :You're not channel operator\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 482 " + channelName + " :You're not channel operator\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -45,7 +45,7 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 	// Look up the user’s FD by nickname.
 	int userFd = _findClientFromNickname(userName);
 	if (userFd == -1 || std::find(channel.GetUsers().begin(), channel.GetUsers().end(), userFd) == channel.GetUsers().end()) {
-		std::string err = "441 " + userName + " :They aren't in the channel\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 441 " + userName + " :They aren't in the channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -75,7 +75,7 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 // invites a user to a channel
 void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 2) {
-		std::string err = "IRC 461 INVITE :Not enough parameters\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 INVITE :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -85,7 +85,7 @@ void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// 1) Check whether channel exists.
 	if (_channels.find(channelName) == _channels.end()) {
-		std::string err = "IRC 403 " + channelName + " :No such channel\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 403 " + channelName + " :No such channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -93,7 +93,7 @@ void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 	// 2) Check whether target user exists.
 	int targetFd = _findClientFromNickname(targetNick);
 	if (targetFd == -1) {
-		std::string err = "IRC 401 " + targetNick + " :No such nick\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 401 " + targetNick + " :No such nick\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -102,7 +102,7 @@ void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// 3) Check whether client is channel operator.
 	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) == channel.GetOperators().end()) {
-		std::string err = "IRC 482 " + channelName + " :You're not channel operator\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 482 " + channelName + " :You're not channel operator\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -111,7 +111,7 @@ void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 	const std::vector<int>& users = channel.GetUsers();
 	if (std::find(users.begin(), users.end(), targetFd) != users.end()) {
 		// Mimics weechat's handling when user is already present.
-		std::string err = "IRC 443 " + _clients[targetFd].GetNickName() + " " + channelName + " :is already on channel\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " + _clients[targetFd].GetNickName() + " " + channelName + " :is already on channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -133,7 +133,7 @@ void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 	send(targetFd, noticeMsg.c_str(), noticeMsg.size(), 0);
 
 	// 8) Send numeric 341 confirmation to the inviter.
-	std::string confirmation = "IRC 341 " + _clients[clientSocket].GetNickName() +
+	std::string confirmation = ":" + _clients[clientSocket].GetNickName() + " 341 " + _clients[clientSocket].GetNickName() +
 							   " " + targetNick + " " + channelName + "\r\n";
 	send(clientSocket, confirmation.c_str(), confirmation.size(), 0);
 }
@@ -148,7 +148,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// We need at least the channel name.
 	if (tokens.size() < 1) {
-		std::string err = "461 TOPIC :Not enough parameters\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 TOPIC :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -157,7 +157,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// Check whether channel exists.
 	if (_channels.find(channelName) == _channels.end()) {
-		std::string err = "403 " + channelName + " :No such channel\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 403 " + channelName + " :No such channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -165,7 +165,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// Check if user is in the channel.
 	if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) == channel.GetUsers().end()) {
-		std::string err = "442 " + channelName + " :You're not on that channel\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 442 " + channelName + " :You're not on that channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -176,12 +176,12 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 		if (channel.GetTopic().empty()) {
 			// 331: RPL_NOTOPIC
 			// "<channel> :No topic is set"
-			std::string rpl = "331 " + _clients[clientSocket].GetNickName() + " " + channelName + " :No topic is set\r\n";
+			std::string rpl = ":" + _clients[clientSocket].GetNickName() + " 331 " + channelName + " :No topic is set\r\n";
 			send(clientSocket, rpl.c_str(), rpl.size(), 0);
 		} else {
 			// 332: RPL_TOPIC
 			// "<channel> :<topic>"
-			std::string rpl = "332 " + _clients[clientSocket].GetNickName() + " " + channelName + " :" + channel.GetTopic() + "\r\n";
+			std::string rpl = ":" + _clients[clientSocket].GetNickName() + " 332 " + channelName + " :" + channel.GetTopic() + "\r\n";
 			send(clientSocket, rpl.c_str(), rpl.size(), 0);
 		}
 		return;
@@ -191,7 +191,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 	// For simplicity, we'll always require operator status:
 	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket)
 		== channel.GetOperators().end()) {
-		std::string err = "482 " + channelName + " :You're not channel operator\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 482 " + channelName + " :You're not channel operator\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -199,7 +199,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 	// Gather the topic text (everything after the channel).
 	// Typically in IRC, it's "/topic #channel :New Topic" => tokens[1] starts with a colon.
 	std::string newTopic;
-	{ 
+	{
 		// Reconstruct from tokens[1..end].
 		// A typical split might put ":New" in tokens[1], "Topic" in tokens[2], etc.
 		// So we just combine them with spaces, trimming the leading colon if present.
@@ -217,7 +217,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 	// Construct the standard IRC topic broadcast:
 	// :nick!user@host TOPIC <channel> :<newtopic>
 	std::string prefix = _clients[clientSocket].GetNickName() + "!" +
-						_clients[clientSocket].GetUserName() + "@127.0.0.1"; 
+						 _clients[clientSocket].GetUserName() + "@127.0.0.1";
 	std::string topicMsg = ":" + prefix + " TOPIC " + channelName + " :" + newTopic + "\r\n";
 
 	// Broadcast to all users in the channel.

@@ -12,7 +12,7 @@
 // sets the nickname of a client
 void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 1) {
-		std::string err = "461 NICK :Not enough parameters\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 NICK :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -23,7 +23,7 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 	// 1. Check if someone else already uses this nickname.
 	for (std::map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it) {
 		if (it->first != clientSocket && it->second.GetNickName() == newNick) {
-			std::string err = "433 " + newNick + " :Nickname is already in use\r\n";
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 433 " + newNick + " :Nickname is already in use\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
@@ -31,7 +31,7 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// 2. Handle the same-nick scenario (optional).
 	if (newNick == oldNick) {
-		std::string err = "433 " + newNick + " :Nickname is already in use\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 433 " + newNick + " :Nickname is already in use\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -59,7 +59,7 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 // sets the username of a client
 void Server::User(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() < 4) {
-		std::string err = "461 USER :Not enough parameters\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 USER :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	} else {
@@ -73,17 +73,17 @@ void Server::User(int clientSocket, const std::vector<std::string>& tokens) {
 
 void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 	if (!_clients[clientSocket].GetAuthenticated()) {
-		std::string err = "464 " + _clients[clientSocket].GetNickName() + " JOIN :You're not authenticated\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 464 JOIN :You're not authenticated\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 	if (_clients[clientSocket].GetNickName().empty() || _clients[clientSocket].GetUserName().empty()) {
-		std::string err = "451 JOIN :You have not registered\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 451 JOIN :You have not registered\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 	if (tokens.size() < 1 || tokens.size() > 2) {
-		std::string err = "461 JOIN :Incorrect amount for parameters\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 JOIN :Incorrect amount for parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -113,7 +113,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 
 		// If channel name doesn't start with '#', return an error.
 		if (!channelName.empty() && channelName[0] != '#') {
-			std::string err = "479 " + _clients[clientSocket].GetNickName() + " " + channelName +
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 479 " + channelName +
 							  " :Channel name must begin with '#'\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
@@ -132,26 +132,26 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 
 		Channel* channel = &_channels[channelName];
 		if (channel->GetUserLimit() > NO_USER_LIMIT && channel->GetUsers().size() >= channel->GetUserLimit()) {
-			std::string err = "471 " + _clients[clientSocket].GetNickName() + " " + channelName +
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 471 " + channelName +
 							  " :Cannot join channel, User limit exceeded (+l)\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
 		}
 		if (channel->GetInviteOnly() &&
 			std::find(channel->GetInvited().begin(), channel->GetInvited().end(), clientSocket) == channel->GetInvited().end()) {
-			std::string err = "473 " + _clients[clientSocket].GetNickName() + " " + channelName +
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 473 " + channelName +
 							  " :Cannot join channel, invite is required (+i)\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
 		}
 		if (!channel->GetPassword().empty() && providedKey != channel->GetPassword()) {
-			std::string err = "475 " + _clients[clientSocket].GetNickName() + " " + channelName +
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 475 " + channelName +
 							  " :Cannot join channel (+k)\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
 		}
 		if (std::find(channel->GetUsers().begin(), channel->GetUsers().end(), clientSocket) != channel->GetUsers().end()) {
-			std::string err = "443 " + _clients[clientSocket].GetNickName() + " " + channelName +
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " + channelName +
 							  " :You are already on that channel\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
@@ -171,14 +171,14 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 	// 1) Ensure user is authenticated.
 	if (!_clients[clientSocket].GetAuthenticated()) {
-		std::string err = "IRC 464 " + _clients[clientSocket].GetNickName() + " PRIVMSG :You are not authenticated\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 464 PRIVMSG :You are not authenticated\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
 	// 2) Check for correct parameter count.
 	if (tokens.size() < 2) {
-		std::string err = "IRC 461 PRIVMSG :Not enough parameters\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 PRIVMSG :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
@@ -212,13 +212,13 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 	// 5) If target is a channel, ensure it exists and user is in it, then broadcast.
 	if (!target.empty() && target[0] == '#') {
 		if (_channels.find(target) == _channels.end()) {
-			std::string err = "IRC 403 " + target + " :No such channel\r\n";
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 403 " + target + " :No such channel\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
 		Channel &channel = _channels[target];
 		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) == channel.GetUsers().end()) {
-			std::string err = "IRC 442 " + _clients[clientSocket].GetNickName() + " " + target + " :You're not on that channel\r\n";
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 442 " + target + " :You're not on that channel\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
@@ -234,7 +234,7 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 		// 6) Otherwise, treat as direct message to a nick.
 		int targetFd = _findClientFromNickname(target);
 		if (targetFd == -1) {
-			std::string err = "IRC 401 " + target + " :No such nick\r\n";
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 401 " + target + " :No such nick\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
