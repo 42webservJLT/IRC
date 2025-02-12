@@ -133,6 +133,12 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 		}
 
 		Channel* channel = &_channels[channelName];
+		if (std::find(channel->GetUsers().begin(), channel->GetUsers().end(), clientSocket) != channel->GetUsers().end()) {
+//			std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " + channelName +
+//							  " :You are already on that channel\r\n";
+//			send(clientSocket, err.c_str(), err.size(), 0);
+			continue;
+		}
 		if (channel->GetUserLimit() > NO_USER_LIMIT && channel->GetUsers().size() >= channel->GetUserLimit()) {
 			std::string err = ":" + _clients[clientSocket].GetNickName() + " 471 " + channelName +
 							  " :Cannot join channel, User limit exceeded (+l)\r\n";
@@ -147,17 +153,16 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 			continue;
 		}
 		if (!channel->GetPassword().empty() && providedKey != channel->GetPassword()) {
-			std::string err = ":" + _clients[clientSocket].GetNickName() + " 475 " + channelName +
-							  " :Cannot join channel (+k)\r\n";
-			send(clientSocket, err.c_str(), err.size(), 0);
+//			std::string err = ":" + _clients[clientSocket].GetNickName() + " 475 " + channelName +
+//							  " :Cannot join channel (+k)\r\n";
+			std::string err = _errMsg(_clients[clientSocket].GetNickName(), "475", channelName, "Cannot join channel (+k)");
+			std::cout << err << std::endl;
+			if (send(clientSocket, err.c_str(), err.size(), 0)) {
+				std::cout << "Error sending 475" << std::endl;
+			}
 			continue;
 		}
-		if (std::find(channel->GetUsers().begin(), channel->GetUsers().end(), clientSocket) != channel->GetUsers().end()) {
-			std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " + channelName +
-							  " :You are already on that channel\r\n";
-			send(clientSocket, err.c_str(), err.size(), 0);
-			continue;
-		}
+
 		channel->AddUser(clientSocket);
 		std::vector<int>& invited = channel->GetInvited();
 		invited.erase(std::remove(invited.begin(), invited.end(), clientSocket), invited.end());
