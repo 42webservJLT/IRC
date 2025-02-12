@@ -1,5 +1,11 @@
 # Startup
 
+## Testing
+Show ports in use
+```bash
+lsof -i -P -n | grep LISTEN
+````
+
 ## Compile && start
 ```bash
 make re
