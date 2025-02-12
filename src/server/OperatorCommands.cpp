@@ -140,23 +140,88 @@ void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
 
 // sets the topic of a channel
 void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
-	if (tokens.size() != 2) {
+	/*
+	* Expected usage:
+	*   /topic <channel>       -> Show current topic
+	*   /topic <channel> :text -> Set channel’s topic
+	*/
+
+	// We need at least the channel name.
+	if (tokens.size() < 1) {
 		std::string err = "461 TOPIC :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
-//	check whether channel exists
-	if (_channels.find(tokens[0]) != _channels.end()) {
-		auto channel = _channels[tokens[0]];
-//		check whether user is operator
-		if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) != channel.GetOperators().end()) {
-			channel.SetTopic(tokens[1]);
-		} else {
-			std::string err = "482 " + tokens[0] + " :You're not channel operator\r\n";
-			send(clientSocket, err.c_str(), err.size(), 0);
-		}
-	} else {
-		std::string err = "403 " + tokens[0] + " :No such channel\r\n";
+
+	std::string channelName = tokens[0];
+
+	// Check whether channel exists.
+	if (_channels.find(channelName) == _channels.end()) {
+		std::string err = "403 " + channelName + " :No such channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+	Channel &channel = _channels[channelName];
+
+	// Check if user is in the channel.
+	if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) == channel.GetUsers().end()) {
+		std::string err = "442 " + channelName + " :You're not on that channel\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
+	// If no topic text is provided, show current topic.
+	// tokens.size() == 1 means just "/topic <channel>" with no text.
+	if (tokens.size() == 1) {
+		if (channel.GetTopic().empty()) {
+			// 331: RPL_NOTOPIC
+			// "<channel> :No topic is set"
+			std::string rpl = "331 " + _clients[clientSocket].GetNickName() + " " + channelName + " :No topic is set\r\n";
+			send(clientSocket, rpl.c_str(), rpl.size(), 0);
+		} else {
+			// 332: RPL_TOPIC
+			// "<channel> :<topic>"
+			std::string rpl = "332 " + _clients[clientSocket].GetNickName() + " " + channelName + " :" + channel.GetTopic() + "\r\n";
+			send(clientSocket, rpl.c_str(), rpl.size(), 0);
+		}
+		return;
+	}
+
+	// If there is a topic to set, check operator privileges if your server enforces +t.
+	// For simplicity, we'll always require operator status:
+	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket)
+		== channel.GetOperators().end()) {
+		std::string err = "482 " + channelName + " :You're not channel operator\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
+	// Gather the topic text (everything after the channel).
+	// Typically in IRC, it's "/topic #channel :New Topic" => tokens[1] starts with a colon.
+	std::string newTopic;
+	{ 
+		// Reconstruct from tokens[1..end].
+		// A typical split might put ":New" in tokens[1], "Topic" in tokens[2], etc.
+		// So we just combine them with spaces, trimming the leading colon if present.
+		for (size_t i = 1; i < tokens.size(); i++) {
+			if (i > 1) newTopic += " ";
+			newTopic += tokens[i];
+		}
+		if (!newTopic.empty() && newTopic[0] == ':')
+			newTopic.erase(0, 1);
+	}
+
+	// Set the topic on the channel.
+	channel.SetTopic(newTopic);
+
+	// Construct the standard IRC topic broadcast:
+	// :nick!user@host TOPIC <channel> :<newtopic>
+	std::string prefix = _clients[clientSocket].GetNickName() + "!" +
+						_clients[clientSocket].GetUserName() + "@127.0.0.1"; 
+	std::string topicMsg = ":" + prefix + " TOPIC " + channelName + " :" + newTopic + "\r\n";
+
+	// Broadcast to all users in the channel.
+	for (int userFd : channel.GetUsers()) {
+		send(userFd, topicMsg.c_str(), topicMsg.size(), 0);
 	}
 }
