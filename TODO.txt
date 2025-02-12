@@ -10,4 +10,6 @@ need to read more about weechat WIP
 
 when trying to enter a channel with a passkey and the passkey provided is wrong. add an error message
 
-when doing /nick it tries to reconnect. need to look if thats ok or just skip the error message 
+when doing /nick it tries to reconnect. need to look if thats ok or just skip the error message//
+
+implement bein able to send messages in snippets (ctrl + d)

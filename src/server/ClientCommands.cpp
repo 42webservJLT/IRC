@@ -11,6 +11,7 @@
 
 // sets the nickname of a client
 void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
+	// Expect exactly one parameter for /nick
 	if (tokens.size() != 1) {
 		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 NICK :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
@@ -20,29 +21,30 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 	std::string oldNick = _clients[clientSocket].GetNickName();
 	std::string newNick = tokens[0];
 
-	// 1. Check if someone else already uses this nickname.
-	for (std::map<int, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it) {
+	// Check for nickname conflicts
+	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
 		if (it->first != clientSocket && it->second.GetNickName() == newNick) {
-			std::string err = ":" + _clients[clientSocket].GetNickName() + " 433 " + newNick + " :Nickname is already in use\r\n";
+			std::string err = ":" + oldNick + " 433 " + newNick + " :Nickname is already in use\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			return;
 		}
 	}
 
-	// 2. Handle the same-nick scenario (optional).
+	// If the user tries to set the same nickname, optionally reject it
 	if (newNick == oldNick) {
-		std::string err = ":" + _clients[clientSocket].GetNickName() + " 433 " + newNick + " :Nickname is already in use\r\n";
+		std::string err = ":" + oldNick + " 433 " + newNick + " :Nickname is already in use\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
-	// 3. Assign the new nickname.
+	// Assign the new nickname
 	_clients[clientSocket].SetNickName(newNick);
 
-	// 4. Broadcast the nick change to the channels.
+	// Broadcast the nick change to the channels (no rejoin call here)
 	std::string nickMsg = ":" + oldNick + " NICK :" + newNick + "\r\n";
 	for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it) {
 		Channel &channel = it->second;
+		// Only inform channels the client is already in
 		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) != channel.GetUsers().end()) {
 			for (int memberFd : channel.GetUsers()) {
 				if (memberFd != clientSocket) {
@@ -52,7 +54,7 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 		}
 	}
 
-	// 5. Attempt to register if PASS, NICK, and USER are set.
+	// Attempt to register if PASS, NICK, and USER are set
 	RegisterClientIfReady(clientSocket);
 }
 
