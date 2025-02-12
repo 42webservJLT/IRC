@@ -32,7 +32,7 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// If the user tries to set the same nickname, optionally reject it
 	if (newNick == oldNick) {
-		std::string err = ":" + oldNick + " 433 " + newNick + " :Nickname is already in use\r\n";
+		std::string err = ":" + oldNick + " 433 " + newNick + " :Nickname is old Nickname\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
