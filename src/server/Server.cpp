@@ -18,8 +18,7 @@ Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(
 	}
 
 //	set socket options
-	int flags = fcntl(_socket, F_GETFL, 0);
-	fcntl(_socket, F_SETFL, flags | O_NONBLOCK);
+	fcntl(_socket, F_SETFL, O_NONBLOCK);
 
 	struct addrinfo hints;
 	std::memset(&hints, 0, sizeof(hints));

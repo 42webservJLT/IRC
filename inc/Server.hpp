@@ -95,6 +95,8 @@ class Server {
 };
 
 Mode _strToModeEnum(std::string str);
+std::string _errMsg(const std::string& nick, const std::string& code, const std::string& msg, const std::string&
+reason);
 
 
 #endif //IRC_SERVER_H
