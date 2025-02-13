@@ -11,6 +11,7 @@ Mode _strToModeEnum(std::string str);
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
 Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(port), _password(password) {
+	_pw_check = true;
 	//	open socket
 	_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (_socket == -1) {

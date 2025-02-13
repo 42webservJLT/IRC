@@ -32,12 +32,25 @@ void Server::HandleConnection(int clientSocket) {
 	std::memset(buffer, 0, sizeof(buffer));
 	ssize_t bytesRead = recv(clientSocket, buffer, MAX_BUFFER_SIZE, 0);
 	if (bytesRead > 0) {
+		// Check if the client is still in the map
+		if (_clients.find(clientSocket) == _clients.end()) {
+			return; // Client has been removed, exit the function
+		}
+
 		std::string msg(buffer, bytesRead);
 
 		std::string& clientBuffer = _clients[clientSocket].GetMsgBuffer();
 		clientBuffer.append(msg);
 
 //		for real irc client, check for \r\n instead!
+		if (clientBuffer.empty()) {
+			std::cout << "client buffer empty" << std::endl;
+			return;
+		}
+		std::cout << "client buffer: |" << clientBuffer << "|" << std::endl;
+		if (!_pw_check) {
+			return ;
+		}
 		size_t pos;
 		while ((pos = clientBuffer.find("\r\n")) != std::string::npos) {
 			std::string commandLine = clientBuffer.substr(0, pos);
@@ -45,6 +58,7 @@ void Server::HandleConnection(int clientSocket) {
 
 			// Parse commandLine into tokens
 			std::tuple<Method, std::vector<std::string>> vals = _parser.parse(commandLine);
+			std::cout << "parser done" << std::endl;
 
 			// Handle message
 			if (std::get<0>(vals) == INVALID) {
@@ -55,6 +69,8 @@ void Server::HandleConnection(int clientSocket) {
 			}
 
 			// Execute the corresponding command handler
+			std::cout << std::get<0>(vals) << std::endl;
+			std::cout << std::get<1>(vals).size() << std::endl;
 			(this->*_methods[std::get<0>(vals)])(clientSocket, std::get<1>(vals));
 		}
 	} else if (bytesRead == 0) {
@@ -75,8 +91,9 @@ void Server::HandleDisconnection(int clientSocket) {
 
 // removes a client from the server
 void Server::RemoveClient(int clientFd) {
-	close(clientFd);
-	_clients.erase(clientFd);
+	if (_clients.find(clientFd) != _clients.end())
+		close(clientFd);
+		_clients.erase(clientFd);
 
 	for (std::vector<struct pollfd>::iterator it = _pollFds.begin(); it != _pollFds.end(); ++it) {
 		if (it->fd == clientFd) {

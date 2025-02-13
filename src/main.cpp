@@ -17,7 +17,11 @@ int main(int argc, char **argv) {
 			throw std::out_of_range("Port number out of range for uint16_t");
 		}
 		uint16_t port = static_cast<uint16_t>(portSizeT);
+
 		std::string password = argv[2];
+		if (password.empty()) {
+			throw std::invalid_argument("Password cannot be empty");
+		}
 
 //		create server instance & run
 		Server server(port, password);

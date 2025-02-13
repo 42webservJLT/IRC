@@ -6,6 +6,7 @@ RESET := "\033[0m"
 
 CPP := c++
 CPPFLAGS := -Wextra -Wall -Werror -std=c++17 -I./inc
+CPPFLAGS += -fsanitize=address -g
 
 SRCDIR := ./src
 OBJDIR = ./obj

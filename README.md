@@ -8,12 +8,6 @@ Show ports in use
 lsof -i -P -n | grep LISTEN
 ```
 
-Netcat
-
-```bash
-printf "PASS abc\r\nNICK hit\r\nUSER hit 0 * :realname\r\nJOIN #h\r\nPRIVMSG #h hello u\r\n" | nc localhost 6667
-```
-
 ## Compile && start
 
 ```bash
