@@ -33,6 +33,10 @@ class Channel {
 		void SetTopic(std::string topic);
 		void SetInviteOnly(bool inviteOnly);
 		void SetUserLimit(size_t userLimit);
+		void SetTopicSetBy(const std::string &nick);
+		const std::string& GetTopicSetBy() const;
+		time_t GetTopicSetTime() const;
+		void SetTopicSetTime(time_t time);
 
 
 		void AddUser(int user);
@@ -45,11 +49,15 @@ class Channel {
 	private:
 		std::string _name;
 		std::string _password;
-		std::string _topic;
 		bool _inviteOnly;
-		bool _topicOnlySettableByOperator;
 		size_t _userLimit;
 		std::vector<std::string> _messages;
+		
+		
+		std::string _topic;          // Text content of the topic
+    	std::string _topicSetBy;     // Nick of who set the topic
+		bool _topicOnlySettableByOperator; // Whether only operators can set the topic
+    	time_t _topicSetTime;        // When the topic was set
 
 //		use the fd of the client instead of the client itself
 		std::vector<int> _operators;

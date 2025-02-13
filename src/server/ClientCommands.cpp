@@ -74,6 +74,8 @@ void Server::User(int clientSocket, const std::vector<std::string>& tokens) {
 }
 
 void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
+	std::string serverName = "my.irc.server"; // or your real server hostname/IP
+
 	if (!_clients[clientSocket].GetAuthenticated()) {
 		std::string err = ":" + _clients[clientSocket].GetNickName() + " 464 JOIN :You're not authenticated\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
@@ -113,26 +115,22 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 		std::string channelName = channelNames[i];
 		std::string providedKey = (i < keys.size()) ? keys[i] : "";
 
-		// If channel name doesn't start with '#', return an error.
+		// If channel name doesn't start with '#', treat as private message channel.
 		if (!channelName.empty() && channelName[0] != '#') {
-			// Instead of instantly throwing an error, treat this as a request to join a private message channel.
-			// We assume private channels use the naming convention: "#pm-<lowerNick>-<higherNick>"
 			std::string senderNick = _clients[clientSocket].GetNickName();
 			std::string targetNick = channelName;
 			std::vector<std::string> nicks = {senderNick, targetNick};
 			std::sort(nicks.begin(), nicks.end());
 			std::string pmChannel = "#pm-" + nicks[0] + "-" + nicks[1];
 			if (_channels.find(pmChannel) == _channels.end()) {
-				std::string err = ":" + senderNick + " 404 " + targetNick +
-								" :No private message channel with that user\r\n";
+				std::string err = ":" + senderNick + " 404 " + targetNick + " :No private message channel with that user\r\n";
 				send(clientSocket, err.c_str(), err.size(), 0);
 				continue;
 			}
-			// Use the found PM channel name for further processing.
-			channelName = pmChannel;
+			channelName = pmChannel; // update to the PM channel name
 		}
 
-		// if channel doesn't exist, create it
+		// If channel doesn't exist, create it, set operator, etc.
 		if (_channels.find(channelName) == _channels.end()) {
 			_channels[channelName] = Channel();
 			_channels[channelName].SetName(channelName);
@@ -143,47 +141,76 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 			std::cout << "Channel " << channelName << " created." << std::endl;
 		}
 
-		Channel* channel = &_channels[channelName];
-		if (std::find(channel->GetUsers().begin(), channel->GetUsers().end(), clientSocket) != channel->GetUsers().end()) {
-			std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " + channelName +
-							  " :You are already on that channel\r\n";
+		Channel& channel = _channels[channelName];
+
+		// Check if user is already on that channel
+		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) != channel.GetUsers().end()) {
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " + channelName + " :You are already on that channel\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
 		}
-		if (channel->GetUserLimit() > NO_USER_LIMIT && channel->GetUsers().size() >= channel->GetUserLimit()) {
-			std::string err = ":" + _clients[clientSocket].GetNickName() + " 471 " + channelName +
-							  " :Cannot join channel, User limit exceeded (+l)\r\n";
+
+		// Check +l (user limit)
+		if (channel.GetUserLimit() > NO_USER_LIMIT && channel.GetUsers().size() >= channel.GetUserLimit()) {
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 471 " + channelName
+				+ " :Cannot join channel, user limit exceeded (+l)\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
 		}
-		if (channel->GetInviteOnly() &&
-			std::find(channel->GetInvited().begin(), channel->GetInvited().end(), clientSocket) == channel->GetInvited().end()) {
-			std::string err = ":" + _clients[clientSocket].GetNickName() + " 473 " + channelName +
-							  " :Cannot join channel, invite is required (+i)\r\n";
-			send(clientSocket, err.c_str(), err.size(), 0);
-			continue;
+
+		// Check +i (invite-only)
+		if (channel.GetInviteOnly()) {
+			const std::vector<int>& invitedList = channel.GetInvited();
+			if (std::find(invitedList.begin(), invitedList.end(), clientSocket) == invitedList.end()) {
+				std::string err = ":" + _clients[clientSocket].GetNickName() + " 473 " + channelName
+					+ " :Cannot join channel, invite is required (+i)\r\n";
+				send(clientSocket, err.c_str(), err.size(), 0);
+				continue;
+			}
 		}
-		if (!channel->GetPassword().empty() && providedKey != channel->GetPassword()) {
-//			std::string err = ":" + _clients[clientSocket].GetNickName() + " 475 " + channelName +
-//							  " :Cannot join channel (+k)\r\n";
+
+		// Check +k (channel password)
+		if (!channel.GetPassword().empty() && providedKey != channel.GetPassword()) {
 			std::string err = _errMsg(_clients[clientSocket].GetNickName(), "475", channelName, "Cannot join channel (+k)");
 			std::cout << err << std::endl;
-			if (send(clientSocket, err.c_str(), err.size(), 0)) {
+			if (send(clientSocket, err.c_str(), err.size(), 0) == -1) {
 				std::cout << "Error sending 475" << std::endl;
 			}
 			continue;
 		}
 
-		channel->AddUser(clientSocket);
-		std::vector<int>& invited = channel->GetInvited();
+		// Add user to channel and remove them from Invited list
+		channel.AddUser(clientSocket);
+		std::vector<int>& invited = channel.GetInvited();
 		invited.erase(std::remove(invited.begin(), invited.end(), clientSocket), invited.end());
 
-		// Log and broadcast join
+		// Broadcast join
 		std::cout << _clients[clientSocket].GetNickName() << " joined channel " << channelName << std::endl;
 		std::string joinMsg = ":" + _clients[clientSocket].GetNickName() + " JOIN :" + channelName + "\r\n";
 		_BroadcastToChannel(channelName, joinMsg);
+
+		// NEW: Send RPL_TOPIC info after user joins (WeeChat & most IRC clients expect this).
+		if (channel.GetTopic().empty()) {
+			// 331: RPL_NOTOPIC
+			std::string rplNoTopic = ":" + serverName + " 331 " +
+				_clients[clientSocket].GetNickName() + " " + channelName + " :No topic is set\r\n";
+			send(clientSocket, rplNoTopic.c_str(), rplNoTopic.size(), 0);
+		} else {
+			// 332: RPL_TOPIC
+			std::string rplTopic = ":" + serverName + " 332 " +
+				_clients[clientSocket].GetNickName() + " " + channelName + " :" + channel.GetTopic() + "\r\n";
+			send(clientSocket, rplTopic.c_str(), rplTopic.size(), 0);
+
+			// 333: RPL_TOPICWHOTIME (optional but expected by many IRC clients)
+			// Format: 333 <nick> <channel> <whoSetTopic> <when>
+			std::string rplTopicWhoTime = ":" + serverName + " 333 " +
+				_clients[clientSocket].GetNickName() + " " + channelName + " " +
+				channel.GetTopicSetBy() + " " + std::to_string(channel.GetTopicSetTime()) + "\r\n";
+			send(clientSocket, rplTopicWhoTime.c_str(), rplTopicWhoTime.size(), 0);
+		}
 	}
 }
+
 
 // sends a private message
 void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {

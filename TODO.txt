@@ -2,16 +2,6 @@ test and fix:
 
 /invite (maybe display a message for the perosn that was bein invited to let them know)
 
-messages at the channel dont get displayed
-
-/quit ? message in channels where the  person is a member of ? already displays the message inm private message channels. maybe need to check if weechat needs permissions to post in channels
-
-need to read more about weechat WIP
-
-when trying to enter a channel with a passkey and the passkey provided is wrong. add an error message
-
-when doing /nick it tries to reconnect. need to look if thats ok or just skip the error message//
-
 implement being able to send messages in snippets (ctrl + d)
 
 topic gets displayed wrong. also need to show topic when joining a new channel, that has a topic.

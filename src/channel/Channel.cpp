@@ -8,7 +8,7 @@
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
 
-Channel::Channel() : _name(""), _password(""), _topic(""), _inviteOnly(false), _topicOnlySettableByOperator(false) {}
+Channel::Channel() : _name(""), _password(""), _inviteOnly(false), _topic(""), _topicOnlySettableByOperator(false) {}
 
 Channel::~Channel() {}
 
@@ -121,4 +121,20 @@ void Channel::RemoveUser(const int user) {
 
 bool Channel::IsUserOperator(int user) {
 	return std::find(_operators.begin(), _operators.end(), user) != _operators.end();
+}
+
+const std::string& Channel::GetTopicSetBy() const { 
+	return _topicSetBy; 
+}
+
+void Channel::SetTopicSetBy(const std::string &nick) { 
+	_topicSetBy = nick; 
+}
+
+time_t Channel::GetTopicSetTime() const { 
+	return _topicSetTime; 
+}
+
+void Channel::SetTopicSetTime(time_t time) { 
+	_topicSetTime = time; 
 }
