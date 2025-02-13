@@ -69,6 +69,9 @@ client:
 client2:
 	docker exec -it weechat2 weechat
 
+client3:
+	docker exec -it weechat3 weechat
+
 lint:
 	cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude ./src
 	find ./inc -type f -name "*.hpp" -exec cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude {} \;
