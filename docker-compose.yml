@@ -6,8 +6,6 @@ services:
       - "6696:6696"
     command: ["sleep", "infinity"]
     network_mode: "host"
-#    networks:
-#        - irc_network
 
   weechat2:
     container_name: weechat2
@@ -25,6 +23,8 @@ services:
     command: [ "sleep", "infinity" ]
     network_mode: "host"
 
-#networks:
-#    irc_network:
-#        driver: bridge
+  netcat:
+    container_name: netcat
+    build: .
+    command: ["sleep", "infinity"]
+    network_mode: "host"
