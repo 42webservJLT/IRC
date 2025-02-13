@@ -21,11 +21,9 @@ class Client {
 		std::string& GetMsgBuffer();
 		int GetFd() const;
 
-//		TODO: implement
 		void SetUserName(std::string userName);
 		void SetNickName(std::string nickName);
 		void SetAuthenticated(bool authenticated);
-//		TODO: end
 
 	private:
 		int _fd;
