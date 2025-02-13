@@ -1,5 +1,9 @@
 NAME := ircserv
 
+GREEN := "\033[0;32m"
+BLUE := "\033[0;34m"
+RESET := "\033[0m"
+
 CPP := c++
 CPPFLAGS := -Wextra -Wall -Werror -std=c++17 -I./inc
 
@@ -27,30 +31,34 @@ SRC += $(addprefix $(SRCDIR)/, main.cpp)
 OBJ := $(SRC:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	mkdir -p $(OBJDIR)/$(SERVERDIR)
-	mkdir -p $(OBJDIR)/$(CLIENTDIR)
-	mkdir -p $(OBJDIR)/$(CHANNELDIR)
-	mkdir -p $(OBJDIR)/$(PARSERDIR)
-	$(CPP) $(CPPFLAGS) -c $< -o $@
+	@mkdir -p $(OBJDIR)/$(SERVERDIR)
+	@mkdir -p $(OBJDIR)/$(CLIENTDIR)
+	@mkdir -p $(OBJDIR)/$(CHANNELDIR)
+	@mkdir -p $(OBJDIR)/$(PARSERDIR)
+	@$(CPP) $(CPPFLAGS) -c $< -o $@
 
 all: $(NAME)
 
 $(NAME): $(OBJ)
-	$(CPP) $(CPPFLAGS) $(OBJ) -o $(NAME)
+	@echo $(BLUE)"Compiling IRC server..."$(RESET)
+	@$(CPP) $(CPPFLAGS) $(OBJ) -o $(NAME)
+	@echo $(GREEN)"IRC server compiled!"$(RESET)
 
 clean:
-	rm -rf $(OBJDIR)
+	@echo $(BLUE)"Cleaning object files..."$(RESET)
+	@rm -rf $(OBJDIR)
+	@echo $(GREEN)"Object files cleaned!"$(RESET)
 
 fclean: clean
-	rm -f $(NAME)
+	@rm -f $(NAME)
 
 re: fclean all
 
 start:
-	docker compose up --remove-orphans -d
+	@docker compose up --remove-orphans -d
 
 stop:
-	docker compose down
+	@docker compose down
 
 server:
 	./ircserv 6667 abc
