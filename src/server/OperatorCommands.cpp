@@ -75,72 +75,70 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 
 // invites a user to a channel
 void Server::Invite(int clientSocket, const std::vector<std::string>& tokens) {
+	/*
+	* Expected usage in IRC:
+	*   /invite <nickname> <channel> -> Invite a user to a channel
+	*/
+
+	// placeholder for the server name
+	std::string serverName = "my.irc.server";
+
 	if (tokens.size() != 2) {
-		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 INVITE :Not enough parameters\r\n";
+		std::string err = ":" + serverName + " 461 " +
+						_clients[clientSocket].GetNickName() + " INVITE :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
-	std::string channelName = tokens[0];
-	std::string targetNick  = tokens[1];
+	std::string targetNick = tokens[0];
+	std::string channelName = tokens[1];
 
-	// 1) Check whether channel exists.
+	// 1) Check whether channel exists
 	if (_channels.find(channelName) == _channels.end()) {
-		std::string err = ":" + _clients[clientSocket].GetNickName() + " 403 " + channelName + " :No such channel\r\n";
+		std::string err = ":" + serverName + " 403 " +
+						_clients[clientSocket].GetNickName() + " " + channelName + " :No such channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
-	// 2) Check whether target user exists.
+	// 2) Check whether target user exists
 	int targetFd = _findClientFromNickname(targetNick);
 	if (targetFd == -1) {
-		std::string err = ":" + _clients[clientSocket].GetNickName() + " 401 " + targetNick + " :No such nick\r\n";
+		std::string err = ":" + serverName + " 401 " +
+						_clients[clientSocket].GetNickName() + " " + targetNick + " :No such nick\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
 	Channel &channel = _channels[channelName];
 
-	// 3) Check whether client is channel operator.
+	// 3) Check whether client is channel operator
 	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) == channel.GetOperators().end()) {
-		std::string err = ":" + _clients[clientSocket].GetNickName() + " 482 " + channelName + " :You're not channel operator\r\n";
+		std::string err = ":" + serverName + " 482 " +
+						_clients[clientSocket].GetNickName() + " " + channelName + " :You're not channel operator\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
-	// 4) Check if the target user is already in the channel.
+	// 4) Check if the target user is already in the channel
 	const std::vector<int>& users = channel.GetUsers();
 	if (std::find(users.begin(), users.end(), targetFd) != users.end()) {
-		std::string err = ":" + _clients[clientSocket].GetNickName() + " 443 " 
-			+ _clients[targetFd].GetNickName() + " " + channelName + " :is already on channel\r\n";
+		std::string err = ":" + serverName
+						  + " 443 " + _clients[targetFd].GetNickName() + " " + channelName +
+						  " :is already on channel\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
 
-	// 5) Add the target user to the invited list if not already present.
+//	// 5) Add the target user to the invited list if not already present.
 	std::vector<int>& invited = channel.GetInvited();
 	if (std::find(invited.begin(), invited.end(), targetFd) == invited.end()) {
 		invited.push_back(targetFd);
 	}
 
-	// 6) Build a proper IRC prefix (nick!user@host). This helps WeeChat recognize who invited them.
-	std::string prefix = _clients[clientSocket].GetNickName() + "!" +
-						_clients[clientSocket].GetUserName() + "@127.0.0.1";
-
-	// 7) Send the INVITE message to the invited user.
-	std::string inviteMsg = ":" + prefix + " INVITE " + targetNick + " " + channelName + "\r\n";
+//	6) send invite message to target user
+	std::string inviteMsg = ":" + _clients[clientSocket].GetNickName() + " INVITE " + targetNick + " " + channelName + "\r\n";
 	send(targetFd, inviteMsg.c_str(), inviteMsg.size(), 0);
-
-	// 8) Optionally, a NOTICE or PRIVMSG confirming the invite to the target user.
-	std::string noticeMsg = ":" + prefix + " NOTICE " + targetNick 
-		+ " :You have been invited to " + channelName + " by " 
-		+ _clients[clientSocket].GetNickName() + "\r\n";
-	send(targetFd, noticeMsg.c_str(), noticeMsg.size(), 0);
-
-	// 9) Numeric 341 confirmation to the inviter, also with the prefix.
-	std::string confirmation = ":" + prefix + " 341 " + _clients[clientSocket].GetNickName() 
-		+ " " + targetNick + " " + channelName + "\r\n";
-	send(clientSocket, confirmation.c_str(), confirmation.size(), 0);
 }
 
 // sets the topic of a channel
