@@ -1,8 +1,2 @@
-test and fix:
 
-/invite (maybe display a message for the perosn that was bein invited to let them know)
-
-implement being able to send messages in snippets (ctrl + d)
-
-topic gets displayed wrong. also need to show topic when joining a new channel, that has a topic.
 

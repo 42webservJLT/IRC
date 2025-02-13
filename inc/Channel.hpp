@@ -37,6 +37,7 @@ class Channel {
 		const std::string& GetTopicSetBy() const;
 		time_t GetTopicSetTime() const;
 		void SetTopicSetTime(time_t time);
+		bool GetTopicOnlySettableByOperator() const;
 
 
 		void AddUser(int user);

@@ -205,7 +205,8 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 	}
 
 	// 4) If there is a topic text to set, require operator status (or check +t mode if you have it)
-	if (std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) == channel.GetOperators().end()) {
+	if (channel.GetTopicOnlySettableByOperator() &&
+    std::find(channel.GetOperators().begin(), channel.GetOperators().end(), clientSocket) == channel.GetOperators().end()) {
 		std::string err = ":" + serverName + " 482 " +
 						_clients[clientSocket].GetNickName() + " " + channelName +
 						" :You're not channel operator\r\n";

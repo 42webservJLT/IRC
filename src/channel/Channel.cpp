@@ -70,6 +70,11 @@ void Channel::SetPassword(std::string password) {
 	_password = password;
 }
 
+// returns if the topic of the channel can only be set by operators
+bool Channel::GetTopicOnlySettableByOperator() const {
+	return _topicOnlySettableByOperator;
+}
+
 // sets if the topic of the channel can only be set by operators
 void Channel::SetTopicOnlySettableByOperator(bool topicOnlySettableByOperator) {
 	_topicOnlySettableByOperator = topicOnlySettableByOperator;
