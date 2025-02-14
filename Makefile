@@ -16,6 +16,9 @@ CLIENTDIR = client
 CHANNELDIR = channel
 PARSERDIR = parser
 
+PORT := 6667
+PWD := abc
+
 SRC := $(addprefix $(SRCDIR)/$(SERVERDIR)/, \
 	Authentication.cpp \
 	ClientCommands.cpp \
@@ -63,7 +66,7 @@ stop:
 	@docker compose down
 
 server:
-	@./ircserv 6667 abc
+	@./ircserv $(PORT) $(PWD)
 
 client:
 	@docker exec -it weechat weechat
@@ -75,7 +78,7 @@ client3:
 	@docker exec -it weechat3 weechat
 
 netcat:
-	@docker exec -it netcat nc -C host.docker.internal 6667
+	@docker exec -it netcat nc -C host.docker.internal $(PORT)
 
 lint:
 	@cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude ./src
