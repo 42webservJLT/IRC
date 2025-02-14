@@ -9,12 +9,10 @@
 void Server::Authenticate(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 1 || tokens[0] != GetPassword()) {
 		std::cout << "vector client size: " << _clients.size() << std::endl;
-		std::string err = "464 " + _clients[clientSocket].GetNickName() + " PASS :Password incorrect\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		// PREVIOUS APPROACH: HandleDisconnection(clientSocket); // Disconnect the client on failed authentication
-		RemoveClient(clientSocket); // forcibly disconnect
+//		RemoveClient(clientSocket); // forcibly disconnect
 	} else {
-		_pw_check = true;
 		_clients[clientSocket].SetAuthenticated(true);
 		// Optionally, send a welcome message or further instructions
 		RegisterClientIfReady(clientSocket);
