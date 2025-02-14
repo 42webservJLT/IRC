@@ -51,10 +51,8 @@ std::tuple<Method, std::vector<std::string>> Parser::parse(const std::string &ms
 
 	// Remove the first token (the command) to leave only parameters
 	std::vector<std::string> params;
-	if (tokens.size() > 1) {
+	if (tokens.size() > 0) {
 		params.assign(tokens.begin() + 1, tokens.end());
 	}
-	std::cout << "Parsed method: " << method << std::endl;
-	std::cout << "tokens = " << tokens.size() << std::endl;
 	return std::make_tuple(method, params);
 }
