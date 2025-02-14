@@ -53,7 +53,7 @@ class Server {
 		void User(int clientSocket, const std::vector<std::string>& tokens);
 		void Join(int clientSocket, const std::vector<std::string>& tokens);
 		void PrivMsg(int clientSocket, const std::vector<std::string>& tokens);
-		void Quit(int clientSocket, const std::vector<std::string>& tokens);
+		void Quit(int clientSocket, const std::vector<std::string>& /*tokens*/);
 
 //		operator commands for channels
 		void Kick(int clientSocket, const std::vector<std::string>& tokens);

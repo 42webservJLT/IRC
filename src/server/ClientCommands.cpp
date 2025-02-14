@@ -299,7 +299,7 @@ void Server::_BroadcastToChannel(const std::string &channelName, const std::stri
 }
 
 
-void Server::Quit(int clientSocket, const std::vector<std::string>& tokens) {
+void Server::Quit(int clientSocket, const std::vector<std::string>& /*tokens*/) {
 	std::string quitMessage = "Client Quit";
 	std::string broadcastMsg = ":" + _clients[clientSocket].GetNickName() +
 							   " QUIT :" + quitMessage + "\r\n";

@@ -16,7 +16,6 @@ class Channel {
 		Channel();
 		~Channel();
 
-//		TODO: implement
 		std::string GetName() const;
 		std::string GetTopic() const;
 		bool GetInviteOnly() const;
@@ -45,7 +44,6 @@ class Channel {
 		void RemoveOperator(int user);
 		void RemoveUser(int user);
 		bool IsUserOperator(int user);
-//		TODO: end
 
 	private:
 		std::string _name;
