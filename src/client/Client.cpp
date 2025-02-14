@@ -37,8 +37,12 @@ bool Client::GetAuthenticated() const {
 	return _authenticated;
 }
 
-std::string& Client::GetMsgBuffer() {
+std::string Client::GetMsgBuffer() {
 	return _msgBuffer;
+}
+
+void Client::SetMsgBuffer(std::string msgBuffer) {
+	_msgBuffer = msgBuffer;
 }
 
 // sets the username of the client
