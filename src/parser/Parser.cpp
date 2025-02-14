@@ -10,7 +10,6 @@ Parser::~Parser() {
 }
 
 std::tuple<Method, std::vector<std::string>> Parser::parse(const std::string &msg) const {
-	std::cout << "Parsing message: " << msg << std::endl;
 	std::vector<std::string> tokens;
 	std::istringstream tokenStream(msg);
 	std::string token;

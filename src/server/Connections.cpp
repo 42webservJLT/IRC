@@ -22,7 +22,6 @@ void Server::HandleNewConnection() {
 		_pollFds.push_back(pfd);
 
 		_clients[clientFd] = Client(clientFd);
-		std::cout << "New connection from FD: " << clientFd << std::endl;
 	}
 }
 
@@ -45,10 +44,8 @@ void Server::HandleConnection(int clientSocket) {
 
 //		for real irc client, check for \r\n instead!
 		if (clientBuffer.empty()) {
-			std::cout << "client buffer empty" << std::endl;
 			return;
 		}
-		std::cout << "client buffer: |" << clientBuffer << "|" << std::endl;
 		size_t pos;
 		while ((pos = clientBuffer.find("\r\n")) != std::string::npos) {
 			std::string commandLine = clientBuffer.substr(0, pos);
@@ -57,7 +54,6 @@ void Server::HandleConnection(int clientSocket) {
 
 			// Parse commandLine into tokens
 			std::tuple<Method, std::vector<std::string>> vals = _parser.parse(commandLine);
-			std::cout << "parser done" << std::endl;
 
 			// Handle message
 			if (std::get<0>(vals) == INVALID) {
@@ -98,7 +94,6 @@ void Server::RemoveClient(int clientFd) {
 			break;
 		}
 	}
-	std::cout << "Client disconnected on FD: " << clientFd << std::endl;
 }
 
 // handles a clients interactions with the server

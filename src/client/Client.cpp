@@ -9,7 +9,6 @@
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
 Client::Client() : _fd(-1), _userName(""), _nickName(""), _authenticated(false), _msgBuffer("") {
-	std::cout << "message buffer: " << _msgBuffer << "innited" << std::endl;
 }
 
 
