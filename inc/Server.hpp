@@ -92,7 +92,6 @@ class Server {
 //		instance of parser class
 		Parser _parser;
 		int _listeningFd;
-		bool _pw_check;
 };
 
 Mode _strToModeEnum(std::string str);

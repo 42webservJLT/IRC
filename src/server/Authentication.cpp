@@ -8,7 +8,7 @@
 // authenticates a client if the password is correct
 void Server::Authenticate(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() != 1 || tokens[0] != GetPassword()) {
-		_pw_check = false;
+		std::cout << "vector client size: " << _clients.size() << std::endl;
 		std::string err = "464 " + _clients[clientSocket].GetNickName() + " PASS :Password incorrect\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		// PREVIOUS APPROACH: HandleDisconnection(clientSocket); // Disconnect the client on failed authentication

@@ -48,9 +48,6 @@ void Server::HandleConnection(int clientSocket) {
 			return;
 		}
 		std::cout << "client buffer: |" << clientBuffer << "|" << std::endl;
-		if (!_pw_check) {
-			return ;
-		}
 		size_t pos;
 		while ((pos = clientBuffer.find("\r\n")) != std::string::npos) {
 			std::string commandLine = clientBuffer.substr(0, pos);
