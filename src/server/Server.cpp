@@ -4,13 +4,16 @@
 
 #include "Server.hpp"
 #include "Client.hpp"
+#include <csignal>
 
 Mode _strToModeEnum(std::string str);
+
+Server* Server::_instance = nullptr;
 
 /* --------------------------------------------------------------------------------- */
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
-Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(port), _password(password) {
+Server::Server(uint16_t port, std::string password) : _host("0.0.0.0"), _port(port), _password(password), _running(true) {
 	//	open socket
 	_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (_socket == -1) {
@@ -111,7 +114,7 @@ std::vector<pollfd> Server::GetPollFds() const {
 /* --------------------------------------------------------------------------------- */
 // runs the server
 bool Server::Run() {
-	while (true) {
+	while (_running) {
 		int pollCount = poll(_pollFds.data(), _pollFds.size(), -1);
 		if (pollCount < 0) {
 			// handle error
@@ -138,4 +141,38 @@ bool Server::Run() {
 		}
 	}
 	return true;
+}
+
+void Server::SetInstance(Server* server) {
+	_instance = server;
+}
+
+Server* Server::GetInstance() {
+	return _instance;
+}
+
+void Server::SignalHandler(int signum) {
+	if (signum == SIGINT) {
+		std::cout << "\nReceived SIGINT (Ctrl+C). Cleaning up..." << std::endl;
+		if (_instance) {
+			_instance->Cleanup();
+		}
+		exit(0);
+	}
+}
+
+void Server::Cleanup() {
+	_running = false;
+	
+	// Close all client connections
+	for (const auto& client : _clients) {
+		close(client.first);
+	}
+	
+	// Close server socket
+	if (_socket != -1) {
+		close(_socket);
+	}
+	
+	std::cout << "Server shutdown complete." << std::endl;
 }
