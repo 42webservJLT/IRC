@@ -60,17 +60,17 @@ Server::Server(uint16_t port, std::string password) : _host("127.0.0.1"), _port(
 
 //	initialize function mapping
 	_methods.emplace(AUTHENTICATE, static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Authenticate));
-	_methods.emplace(NICK,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Nick));
-	_methods.emplace(USER,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::User));
-	_methods.emplace(JOIN,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Join));
-	_methods.emplace(MSG,    static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::PrivMsg));
-	_methods.emplace(KICK,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Kick));
-	_methods.emplace(INVITE,     static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Invite));
-	_methods.emplace(TOPIC,      static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Topic));
-	_methods.emplace(MODE,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Mode));
-	_methods.emplace(PING,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Ping));
-	_methods.emplace(QUIT,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Quit));
-	_methods.emplace(INVALID,    nullptr);
+	_methods.emplace(NICK,         static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Nick));
+	_methods.emplace(USER,         static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::User));
+	_methods.emplace(JOIN,         static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Join));
+	_methods.emplace(MSG,          static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::PrivMsg));
+	_methods.emplace(KICK,         static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Kick));
+	_methods.emplace(INVITE,       static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Invite));
+	_methods.emplace(TOPIC,        static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Topic));
+	_methods.emplace(MODE,         static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Mode));
+	_methods.emplace(PING,         static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Ping));
+	_methods.emplace(QUIT,         static_cast<void (Server::*)(int, const std::vector<std::string>&)>(&Server::Quit));
+	_methods.emplace(INVALID,      nullptr);
 
 //	initialize parser
 	_parser = Parser();
