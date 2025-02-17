@@ -1,0 +1,30 @@
+services:
+  weechat:
+    container_name: weechat
+    image: weechat/weechat:latest-slim
+    ports:
+      - "6696:6696"
+    command: ["sleep", "infinity"]
+    network_mode: "host"
+
+  weechat2:
+    container_name: weechat2
+    image: weechat/weechat:latest-slim
+    ports:
+      - "6697:6696"
+    command: ["sleep", "infinity"]
+    network_mode: "host"
+
+  weechat3:
+    container_name: weechat3
+    image: weechat/weechat:latest-slim
+    ports:
+      - "6698:6696"
+    command: [ "sleep", "infinity" ]
+    network_mode: "host"
+
+  netcat:
+    container_name: netcat
+    build: .
+    command: ["sleep", "infinity"]
+    network_mode: "host"

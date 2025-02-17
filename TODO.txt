@@ -1,0 +1,4 @@
+
+/nick command doesn't brodcast namechange anymore (it does sometimes, but not always)
+
+parsing doesn't accept /user command ! ??
