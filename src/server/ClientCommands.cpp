@@ -299,7 +299,7 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 		if (send(targetFd, fullMsg.c_str(), fullMsg.size(), 0) == -1) {
 			perror("Error sending PRIVMSG to user");
 			// Remove user and close connection
-			std::cout << "Removing user " << targetFd << " due to send failure" << std::endl;
+			// std::cout << "Removing user " << targetFd << " due to send failure" << std::endl;
 			HandleDisconnection(targetFd);
 		}
 	}
@@ -310,7 +310,7 @@ void Server::_BroadcastToChannel(const std::string &channelName, const std::stri
 		Channel &channel = _channels[channelName];
 		for (int userFd : channel.GetUsers()) {
 			send(userFd, msg.c_str(), msg.size(), 0);
-			std::cout << "Broadcasting to " << userFd << ": " << msg;
+			// std::cout << "Broadcasting to " << userFd << ": " << msg;
 		}
 	}
 }
@@ -333,6 +333,6 @@ void Server::Quit(int clientSocket, const std::vector<std::string>& /*tokens*/) 
 	}
 
 	// Log and disconnect the client
-	std::cout << "Client " << _clients[clientSocket].GetNickName() << " (" << clientSocket << ") quitting: " << quitMessage << std::endl;
+	// std::cout << "Client " << _clients[clientSocket].GetNickName() << " (" << clientSocket << ") quitting: " << quitMessage << std::endl;
 	HandleDisconnection(clientSocket);
 }
