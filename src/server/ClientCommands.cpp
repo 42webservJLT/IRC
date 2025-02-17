@@ -286,6 +286,7 @@ void Server::_BroadcastToChannel(const std::string &channelName, const std::stri
 		Channel &channel = _channels[channelName];
 		for (int userFd : channel.GetUsers()) {
 			send(userFd, msg.c_str(), msg.size(), 0);
+			std::cout << "Broadcasting to " << userFd << ": " << msg;
 		}
 	}
 }
