@@ -171,7 +171,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 		// Check +k (channel password)
 		if (!channel.GetPassword().empty() && providedKey != channel.GetPassword()) {
 			std::string err = _errMsg(_clients[clientSocket].GetNickName(), "475", channelName, "Cannot join channel (+k)");
-			send(clientSocket, err.c_str(), err.size(), 0)
+			send(clientSocket, err.c_str(), err.size(), 0);
 			continue;
 		}
 
