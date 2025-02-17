@@ -21,6 +21,7 @@
 #include "Channel.hpp"
 #include "Parser.hpp"
 #include "Enums.hpp"
+#include <csignal>
 
 #define MAX_BUFFER_SIZE 1024
 #define MAX_CONNECTIONS SOMAXCONN
@@ -77,6 +78,11 @@ class Server {
 		int GetSocket() const;
 		std::vector<pollfd> GetPollFds() const;
 
+		static void SignalHandler(int signum);
+		static Server* GetInstance();
+		void Cleanup();
+		static void SetInstance(Server* server);
+
 	private:
 		std::string _host;
 		uint16_t _port;
@@ -92,6 +98,8 @@ class Server {
 //		instance of parser class
 		Parser _parser;
 		int _listeningFd;
+		static Server* _instance;
+		bool _running;
 };
 
 Mode _strToModeEnum(std::string str);
