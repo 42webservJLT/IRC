@@ -11,8 +11,7 @@ void Server::Authenticate(int clientSocket, const std::vector<std::string>& toke
 		std::string err = "464 " + _clients[clientSocket].GetNickName() + " PASS :Password incorrect\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		// PREVIOUS APPROACH: HandleDisconnection(clientSocket); // Disconnect the client on failed authentication
-		RemoveClient(clientSocket); // forcibly disconnect
-		return;
+//		RemoveClient(clientSocket); // forcibly disconnect
 	} else {
 		_clients[clientSocket].SetAuthenticated(true);
 		// Optionally, send a welcome message or further instructions

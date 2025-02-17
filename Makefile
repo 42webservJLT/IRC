@@ -6,6 +6,7 @@ RESET := "\033[0m"
 
 CPP := c++
 CPPFLAGS := -Wextra -Wall -Werror -std=c++17 -I./inc
+CPPFLAGS += -fsanitize=address -g
 
 SRCDIR := ./src
 OBJDIR = ./obj
@@ -14,6 +15,9 @@ SERVERDIR = server
 CLIENTDIR = client
 CHANNELDIR = channel
 PARSERDIR = parser
+
+PORT := 6667
+PWD := abc
 
 SRC := $(addprefix $(SRCDIR)/$(SERVERDIR)/, \
 	Authentication.cpp \
@@ -56,24 +60,28 @@ re: fclean all
 
 start:
 	@docker compose up --remove-orphans -d
+	@make server
 
 stop:
 	@docker compose down
 
 server:
-	./ircserv 6667 abc
+	@./ircserv $(PORT) $(PWD)
 
 client:
-	docker exec -it weechat weechat
+	@docker exec -it weechat weechat
 
 client2:
-	docker exec -it weechat2 weechat
+	@docker exec -it weechat2 weechat
 
 client3:
-	docker exec -it weechat3 weechat
+	@docker exec -it weechat3 weechat
+
+netcat:
+	@docker exec -it netcat nc -C host.docker.internal $(PORT)
 
 lint:
-	cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude ./src
-	find ./inc -type f -name "*.hpp" -exec cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude {} \;
+	@cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude ./src
+	@find ./inc -type f -name "*.hpp" -exec cppcheck --error-exitcode=1 --enable=all --suppress=missingInclude {} \;
 
 .PHONY: all clean fclean re start server client lint

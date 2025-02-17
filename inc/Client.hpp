@@ -18,9 +18,10 @@ class Client {
 		std::string GetUserName() const;
 		std::string GetNickName() const;
 		bool GetAuthenticated() const;
-		std::string& GetMsgBuffer();
+		std::string GetMsgBuffer();
 		int GetFd() const;
 
+		void SetMsgBuffer(std::string msgBuffer);
 		void SetUserName(std::string userName);
 		void SetNickName(std::string nickName);
 		void SetAuthenticated(bool authenticated);

@@ -138,7 +138,6 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 				_channels[channelName].SetPassword(providedKey);
 			}
 			_changeOperatorPrivileges(channelName, _clients[clientSocket].GetNickName(), true);
-			std::cout << "Channel " << channelName << " created." << std::endl;
 		}
 
 		Channel& channel = _channels[channelName];
@@ -172,10 +171,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 		// Check +k (channel password)
 		if (!channel.GetPassword().empty() && providedKey != channel.GetPassword()) {
 			std::string err = _errMsg(_clients[clientSocket].GetNickName(), "475", channelName, "Cannot join channel (+k)");
-			std::cout << err << std::endl;
-			if (send(clientSocket, err.c_str(), err.size(), 0) == -1) {
-				std::cout << "Error sending 475" << std::endl;
-			}
+			send(clientSocket, err.c_str(), err.size(), 0)
 			continue;
 		}
 
@@ -185,7 +181,6 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 		invited.erase(std::remove(invited.begin(), invited.end(), clientSocket), invited.end());
 
 		// Broadcast join
-		std::cout << _clients[clientSocket].GetNickName() << " joined channel " << channelName << std::endl;
 		std::string joinMsg = ":" + _clients[clientSocket].GetNickName() + " JOIN :" + channelName + "\r\n";
 		_BroadcastToChannel(channelName, joinMsg);
 
@@ -237,12 +232,9 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// If the user typed a channel name without '#', add '#' if that channel exists
 	if (!target.empty() && target[0] != '#') {
-		std::cout << "target: " << target << std::endl;
 		std::string candidate = "#" + target;
-		std::cout << "target: " << candidate << std::endl;
 		if (_channels.find(target) != _channels.end()) {
 			target = candidate;
-			std::cout << "target: " << target << std::endl;
 		}
 	}
 
@@ -299,14 +291,8 @@ void Server::_BroadcastToChannel(const std::string &channelName, const std::stri
 }
 
 
-void Server::Quit(int clientSocket, const std::vector<std::string>& tokens) {
+void Server::Quit(int clientSocket, const std::vector<std::string>& /*tokens*/) {
 	std::string quitMessage = "Client Quit";
-	if (!tokens.empty()) {
-		quitMessage = tokens[0];
-		if (!quitMessage.empty() && quitMessage[0] == ':')
-			quitMessage = quitMessage.substr(1);
-	}
-
 	std::string broadcastMsg = ":" + _clients[clientSocket].GetNickName() +
 							   " QUIT :" + quitMessage + "\r\n";
 

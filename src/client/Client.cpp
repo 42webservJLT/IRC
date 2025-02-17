@@ -3,11 +3,13 @@
 //
 
 #include "Client.hpp"
+#include <iostream>
 
 /* --------------------------------------------------------------------------------- */
 /* Constructors & Destructors                                                        */
 /* --------------------------------------------------------------------------------- */
-Client::Client() : _fd(-1), _userName(""), _nickName(""), _authenticated(false), _msgBuffer("") {}
+Client::Client() : _fd(-1), _userName(""), _nickName(""), _authenticated(false), _msgBuffer("") {
+}
 
 
 Client::Client(int fd) : _fd(fd), _userName(""), _nickName(""), _authenticated(false), _msgBuffer("") {
@@ -34,8 +36,12 @@ bool Client::GetAuthenticated() const {
 	return _authenticated;
 }
 
-std::string& Client::GetMsgBuffer() {
+std::string Client::GetMsgBuffer() {
 	return _msgBuffer;
+}
+
+void Client::SetMsgBuffer(std::string msgBuffer) {
+	_msgBuffer = msgBuffer;
 }
 
 // sets the username of the client
