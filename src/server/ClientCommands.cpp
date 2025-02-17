@@ -40,18 +40,12 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 	// Assign the new nickname
 	_clients[clientSocket].SetNickName(newNick);
 
-	// Broadcast the nick change to the channels (no rejoin call here)
+	// Broadcast the nick change to the channels
 	std::string nickMsg = ":" + oldNick + " NICK :" + newNick + "\r\n";
 	for (std::map<std::string, Channel>::iterator it = _channels.begin(); it != _channels.end(); ++it) {
 		Channel &channel = it->second;
 		// Only inform channels the client is already in
-		if (std::find(channel.GetUsers().begin(), channel.GetUsers().end(), clientSocket) != channel.GetUsers().end()) {
-			for (int memberFd : channel.GetUsers()) {
-				if (memberFd != clientSocket) {
-					send(memberFd, nickMsg.c_str(), nickMsg.size(), 0);
-				}
-			}
-		}
+		_BroadcastToChannel(channel.GetName(), nickMsg);
 	}
 
 	// Attempt to register if PASS, NICK, and USER are set
