@@ -23,8 +23,12 @@ int main(int argc, char **argv) {
 			throw std::invalid_argument("Password cannot be empty");
 		}
 
-//		create server instance & run
+//		create server instance & set up signal handling
 		Server server(port, password);
+		Server::SetInstance(&server);
+		signal(SIGINT, Server::SignalHandler);
+
+//		run server
 		server.Run();
 	} catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
