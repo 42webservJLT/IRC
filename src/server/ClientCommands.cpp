@@ -55,20 +55,41 @@ void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
 // sets the username of a client
 void Server::User(int clientSocket, const std::vector<std::string>& tokens) {
 	if (tokens.size() < 4) {
-		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 USER :Not enough parameters\r\n";
+		std::string err = ":" + _clients[clientSocket].GetNickName() +
+						" 461 USER :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
-	} else {
-		_clients[clientSocket].SetUserName(tokens[0]);
-		// Optionally handle mode & real name
-
-		// Check if PASS was correct & nick is set
-		RegisterClientIfReady(clientSocket);
 	}
+
+	// 1) Validate username (lowercase, strip special chars)
+	std::string validatedUserName = tokens[0];
+	std::transform(validatedUserName.begin(), validatedUserName.end(), validatedUserName.begin(), ::tolower);
+	validatedUserName.erase(std::remove_if(validatedUserName.begin(),
+										validatedUserName.end(),
+										[](unsigned char c){ return !std::isalnum(c) && c != '_'; }),
+							validatedUserName.end());
+
+	// 2) Default hostname/server to "*"
+	std::string host = (tokens.size() > 1 && !tokens[1].empty()) ? tokens[1] : "*";
+	std::string server = (tokens.size() > 2 && !tokens[2].empty()) ? tokens[2] : "*";
+
+	// 3) Handle realname (combine remaining tokens)
+	std::string realName;
+	for (size_t i = 3; i < tokens.size(); ++i) {
+		if (!realName.empty()) realName += " ";
+		realName += tokens[i];
+	}
+
+	// Remove duplicate username check; allow duplicate usernames
+	// (RFCs permit duplicate usernames as long as nicknames differ)
+	_clients[clientSocket].SetUserName(validatedUserName);
+
+	// Check if PASS was correct & nick is set, then send welcome.
+	RegisterClientIfReady(clientSocket);
 }
 
 void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
-	std::string serverName = "my.irc.server"; // or your real server hostname/IP
+	std::string serverName = "127.0.0.1:6667"; // or your real server hostname/IP
 
 	if (!_clients[clientSocket].GetAuthenticated()) {
 		std::string err = ":" + _clients[clientSocket].GetNickName() + " 464 JOIN :You're not authenticated\r\n";
