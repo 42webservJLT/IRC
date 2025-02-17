@@ -29,11 +29,11 @@ std::tuple<Method, std::vector<std::string>> Parser::parse(const std::string &ms
 		tokens.push_back(token);
 	}
 
-	std::cout << "Tokens: ";
-	for (const std::string &t : tokens) {
-		std::cout << t << " ";
-	}
-	std::cout << std::endl;
+	// std::cout << "Tokens: ";
+	// for (const std::string &t : tokens) {
+	// 	std::cout << t << " ";
+	// }
+	// std::cout << std::endl;
 	// Determine the command
 	Method method = INVALID;
 	if (!tokens.empty()) {
@@ -52,7 +52,7 @@ std::tuple<Method, std::vector<std::string>> Parser::parse(const std::string &ms
 		else if (command == "QUIT")   method = QUIT;
 		else                          method = INVALID;
 	}
-	std::cout << "Method: " << method << std::endl;
+	// std::cout << "Method: " << method << std::endl;
 
 	// Remove the first token (the command) to leave only parameters
 	std::vector<std::string> params;
