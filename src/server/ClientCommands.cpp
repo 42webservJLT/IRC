@@ -280,6 +280,12 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 				continue; // Skip sending to sender to avoid duplicate display.
 			if (send(userFd, fullMsg.c_str(), fullMsg.size(), 0) == -1) {
 				perror("Error sending PRIVMSG to channel user");
+				// Remove user from channel and log
+				std::cout << "Removing user " << userFd << " from channel " << channel.GetName() 
+						  << " due to send failure" << std::endl;
+				channel.RemoveUser(userFd);
+				// Consider also removing from other channels and closing connection
+				HandleDisconnection(userFd);
 			}
 		}
 	} else {
@@ -292,6 +298,9 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 		}
 		if (send(targetFd, fullMsg.c_str(), fullMsg.size(), 0) == -1) {
 			perror("Error sending PRIVMSG to user");
+			// Remove user and close connection
+			std::cout << "Removing user " << targetFd << " due to send failure" << std::endl;
+			HandleDisconnection(targetFd);
 		}
 	}
 }
