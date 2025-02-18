@@ -21,16 +21,7 @@ make re
 make start
 ```
 
-## Add server in weechat
-
-```bash
-docker exec  -it weechat weechat
-weechat
-```
-
 # Commands
-
-## Server Commands
 
 ### Connect
 
@@ -39,88 +30,13 @@ weechat
 /connect irc -password=abc
 ```
 
-### Authentication
-
-#### Valid
-
-```weechat
-
-```
-
-#### Invalid
-
-```weechat
-
-```
-
-### Nickname
-
--   The nickname must be unique. If not, gets extended by a number.
-
-#### Valid
-
 ```weechat
 /nick nickname
 ```
 
-#### Invalid
-
-```weechat
-/nick nickname a
-```
-
-### Username
-
-#### Valid
-
-```weechat
-/
-```
-
-#### Invalid
-
-```weechat
-
-```
-
-### Join
-
--   Creates a channel if it does not exist.
-
-#### Valid
-
 ```weechat
 /join #channel
 ```
-
-#### Invalid
-
-```weechat
-/join
-/join #
-/join #channel1 #channel2
-```
-
-### (Private) Message
-
-#### Valid
-
-```weechat
-/msg toto hello you!
-/msg #channel hello you!
-```
-
-#### Invalid
-
-```weechat
-
-```
-
-## Operator Commands
-
-### Kick
-
-#### Valid
 
 ```weechat
 /kick nickname
@@ -129,57 +45,16 @@ weechat
 /kick #channel nickname reason
 ```
 
-#### Invalid
-
-```weechat
-
-```
-
-### Invite
-
-#### Valid
-
 ```weechat
 /invite nickname #channel
 /invite nickname
 ```
-
-#### Invalid
-
-```weechat
-
-```
-
-### Topic
-
-#### Valid
-
-```weechat
-
-```
-
-#### Invalid
-
-```weechat
-
-```
-
-### Mode
-
-#### Valid
 
 ##### Invite Only
 
 ```weechat
 /mode #channel +i
 /mode #channel -i
-```
-
-##### Topic Protection
-
-```weechat
-/mode #channel +t
-/mode #channel -t
 ```
 
 ##### Channel Key
@@ -201,10 +76,4 @@ weechat
 ```weechat
 /mode #channel +l limit
 /mode #channel -l
-```
-
-#### Invalid
-
-```weechat
-
 ```
