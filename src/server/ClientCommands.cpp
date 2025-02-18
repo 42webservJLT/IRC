@@ -173,7 +173,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 			if (_channels.find(pmChannel) == _channels.end()) {
 				std::string err = ":" + senderNick + " 404 " + targetNick + " :No private message channel with that user\r\n";
 				send(clientSocket, err.c_str(), err.size(), 0);
-				return;
+				continue;
 			}
 			channelName = pmChannel; // update to the PM channel name
 		}
@@ -181,7 +181,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 		if (channelNameCheck(channelName)) {
 			std::string err = ":" + _clients[clientSocket].GetNickName() + " 403 " + channelName + " :No such channel\r\n";
 			send(clientSocket, err.c_str(), err.size(), 0);
-			return;
+			continue;
 		}
 
 		// If channel doesn't exist, create it, set operator, etc.
