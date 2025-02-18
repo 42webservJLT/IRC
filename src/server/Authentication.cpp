@@ -23,12 +23,6 @@ void Server::Authenticate(int clientSocket, const std::vector<std::string>& toke
 void Server::RegisterClientIfReady(int clientSocket) {
 	Client &c = _clients[clientSocket];
 	if (c.GetAuthenticated() && !c.GetNickName().empty() && !c.GetUserName().empty()) {
-		for (auto& channelPair : _channels) {
-			Channel& channel = channelPair.second;
-			channel.RemoveUser(clientSocket);
-			channel.RemoveOperator(clientSocket);
-		}
-
 		std::string welcome = "001 " + c.GetNickName() + " :Welcome to the IRC Server\r\n";
 		send(clientSocket, welcome.c_str(), welcome.size(), 0);
 	}
