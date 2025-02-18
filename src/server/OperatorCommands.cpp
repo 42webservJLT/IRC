@@ -39,6 +39,12 @@ void Server::Kick(int clientSocket, const std::vector<std::string>& tokens) {
 		return;
 	}
 
+	if (userName == _clients[clientSocket].GetNickName()) {
+		std::string err = ":" + _clients[clientSocket].GetNickName() + " 417 :You cannot kick yourself\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
 	// Look up the user’s FD by nickname.
 	int userFd = _findClientFromNickname(userName);
 	if (userFd == -1 || std::find(channel.GetUsers().begin(), channel.GetUsers().end(), userFd) == channel.GetUsers().end()) {
@@ -138,7 +144,7 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 	*/
 
 	// Set up a "server name" for numeric replies (could match your actual hostname/IP).
-	std::string serverName = "my.irc.server";
+	std::string serverName = "127.0.0.1:6667";
 	std::string channelName = tokens[0];
 
 	// 1) Check whether channel exists
