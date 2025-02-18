@@ -139,14 +139,6 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// Set up a "server name" for numeric replies (could match your actual hostname/IP).
 	std::string serverName = "my.irc.server";
-
-	if (tokens.size() < 1) {
-		std::string err = ":" + serverName + " 461 " +
-						_clients[clientSocket].GetNickName() + " TOPIC :Not enough parameters\r\n";
-		send(clientSocket, err.c_str(), err.size(), 0);
-		return;
-	}
-
 	std::string channelName = tokens[0];
 
 	// 1) Check whether channel exists
@@ -204,10 +196,32 @@ void Server::Topic(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// 5) Gather the topic text
 	std::string newTopic;
+	std::string sanitized;
 	for (size_t i = 1; i < tokens.size(); i++) {
-		if (i > 1) newTopic += " ";
-		newTopic += tokens[i];
+		std::string token = tokens[i];
+		// If this is the first token, remove a leading ':' if present.
+		if (i == 1 && !token.empty() && token[0] == ':') {
+			token.erase(0, 1);
+		}
+		// Remove all control characters (ASCII below 32 and DEL)
+		token.erase(std::remove_if(token.begin(), token.end(),
+					 [](unsigned char c) { return c < 32 || c == 127; }),
+					 token.end());
+		// Add a space if needed.
+		if (!sanitized.empty()) {
+			// Ensure adding a space doesn't exceed 390 characters.
+			if (sanitized.size() < 390) sanitized.push_back(' ');
+		}
+		// Append token or a substring of it if it would exceed 390 characters.
+		if (sanitized.size() + token.size() > 390) {
+			size_t available = 390 - sanitized.size();
+			sanitized.append(token, 0, available);
+			break;
+		} else {
+			sanitized.append(token);
+		}
 	}
+	newTopic = sanitized;
 	if (!newTopic.empty() && newTopic[0] == ':') {
 		newTopic.erase(0, 1);
 	}

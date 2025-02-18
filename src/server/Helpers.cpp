@@ -49,14 +49,14 @@ reason) {
 }
 
 bool Server::channelPrefixCheck(const std::string& channelName) {
-	if (channelName) {
+	if (!channelName.empty()) {
 		return channelName[0] == '#' || channelName[0] == '&' || channelName[0] == '!' || channelName[0] == '+';
 	}
 	return false;
 }
 
 bool Server::channelNameCheck(const std::string& channelName) {
-	if (channelName) {
+	if (!channelName.empty()) {
 		if (!channelPrefixCheck(channelName)) {
 			return false;
 		}
@@ -68,7 +68,7 @@ bool Server::channelNameCheck(const std::string& channelName) {
 				return false;
 			}
 		}
-		if (channelName.size() > 200 || channelName.size() > 1) { // Assuming 50 is the maximum length for a channel name
+		if (channelName.size() > 200 || channelName.size() > 1) { // Assuming 200 is the maximum length for a channel name
 			return false;
 		}
 		return true;

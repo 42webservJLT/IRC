@@ -11,12 +11,45 @@
 
 // sets the nickname of a client
 void Server::Nick(int clientSocket, const std::vector<std::string>& tokens) {
-	// Expect exactly one parameter for /nick
+	// 1) Expect exactly one parameter for /nick
 	if (tokens.size() != 1) {
 		std::string err = ":" + _clients[clientSocket].GetNickName() + " 461 NICK :Not enough parameters\r\n";
 		send(clientSocket, err.c_str(), err.size(), 0);
 		return;
 	}
+
+	std::string validatedNick = tokens[0];
+
+	// 2) Check first character: letter, '_' or '-', not a digit
+	char firstChar = validatedNick[0];
+	if (!std::isalpha(static_cast<unsigned char>(firstChar)) && firstChar != '_' && firstChar != '-') {
+		std::string err = ":" + validatedNick + " 432 " + validatedNick + " :Invalid first character in nickname\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
+	// 3) Validate all characters (letters, digits, '_' or '-'), disallow spaces, commas, control chars
+	for (char c : validatedNick) {
+		unsigned char uc = static_cast<unsigned char>(c);
+		if (!std::isalnum(uc) && c != '_' && c != '-') {
+			std::string err = ":" + validatedNick + " 432 " + validatedNick + " :Invalid character in nickname\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
+			return;
+		}
+		if (uc < 32 || c == ' ' || c == ',') {
+			std::string err = ":" + validatedNick + " 432 " + validatedNick + " :Forbidden character in nickname\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
+			return;
+		}
+	}
+
+	// 4) Optional: enforce an upper length limit (example: 30)
+	if (validatedNick.size() > 30) {
+		std::string err = ":" + validatedNick + " 432 " + validatedNick + " :Nickname too long\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
 
 	std::string oldNick = _clients[clientSocket].GetNickName();
 	std::string newNick = tokens[0];
@@ -246,9 +279,39 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 
 	// 3) Parse target and message.
 	std::string target = tokens[0];
-	std::string message = tokens[1];
-	for (size_t i = 2; i < tokens.size(); ++i) {
-		message += " " + tokens[i];
+	std::string message;
+	for (size_t i = 1; i < tokens.size(); ++i) {
+		if (!message.empty())
+			message += " ";
+		message += tokens[i];
+	}
+
+	// Lambda to trim whitespace from both ends.
+	auto trim = [](const std::string& str) -> std::string {
+		size_t first = str.find_first_not_of(" \t\r\n");
+		if (first == std::string::npos)
+			return "";
+		size_t last = str.find_last_not_of(" \t\r\n");
+		return str.substr(first, last - first + 1);
+	};
+
+	// Trim the message and check if it's empty or only whitespace.
+	std::string trimmedMessage = trim(message);
+	if (trimmedMessage.empty()) {
+		std::string err = ":" + _clients[clientSocket].GetNickName() +
+						  " 412 PRIVMSG :No text to send\r\n";
+		send(clientSocket, err.c_str(), err.size(), 0);
+		return;
+	}
+
+	// Check for forbidden characters (newline, carriage return, or non-whitespace control chars)
+	for (char c : message) {
+		if (c == '\n' || c == '\r' || (std::iscntrl(static_cast<unsigned char>(c)) && !std::isspace(static_cast<unsigned char>(c)))) {
+			std::string err = ":" + _clients[clientSocket].GetNickName() +
+							  " 412 PRIVMSG :Invalid characters in message\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
+			return;
+		}
 	}
 
 	// If the user typed a channel name without '#', add '#' if that channel exists
