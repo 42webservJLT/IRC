@@ -47,3 +47,31 @@ reason) {
 	err << ":" << nick << " " << code << " " << msg << " :" << reason << "\r\n";
 	return err.str();
 }
+
+bool Server::channelPrefixCheck(const std::string& channelName) {
+	if (channelName) {
+		return channelName[0] == '#' || channelName[0] == '&' || channelName[0] == '!' || channelName[0] == '+';
+	}
+	return false;
+}
+
+bool Server::channelNameCheck(const std::string& channelName) {
+	if (channelName) {
+		if (!channelPrefixCheck(channelName)) {
+			return false;
+		}
+		if (channelName.find(' ') != std::string::npos) { //can't happen because of token splitting but just in case
+			return false;
+		}
+		for (char c : channelName) {
+			if (iscntrl(c)) {
+				return false;
+			}
+		}
+		if (channelName.size() > 200 || channelName.size() > 1) { // Assuming 50 is the maximum length for a channel name
+			return false;
+		}
+		return true;
+	}
+	return false;
+}

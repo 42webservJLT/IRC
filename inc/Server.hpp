@@ -48,6 +48,8 @@ class Server {
 //		verification methods
 		void Authenticate(int clientSocket, const std::vector<std::string>& tokens);
 		void RegisterClientIfReady(int clientSocket);
+		bool channelPrefixCheck(const std::string& channelName);
+		bool channelNameCheck(const std::string& channelName);
 
 //		client commands
 		void Nick(int clientSocket, const std::vector<std::string>& tokens);

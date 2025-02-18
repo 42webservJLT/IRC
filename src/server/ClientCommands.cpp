@@ -131,7 +131,7 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 		std::string providedKey = (i < keys.size()) ? keys[i] : "";
 
 		// If channel name doesn't start with '#', treat as private message channel.
-		if (!channelName.empty() && channelName[0] != '#') {
+		if (!channelName.empty() && !channelPrefixCheck(channelName)) {
 			std::string senderNick = _clients[clientSocket].GetNickName();
 			std::string targetNick = channelName;
 			std::vector<std::string> nicks = {senderNick, targetNick};
@@ -140,9 +140,15 @@ void Server::Join(int clientSocket, const std::vector<std::string>& tokens) {
 			if (_channels.find(pmChannel) == _channels.end()) {
 				std::string err = ":" + senderNick + " 404 " + targetNick + " :No private message channel with that user\r\n";
 				send(clientSocket, err.c_str(), err.size(), 0);
-				continue;
+				return;
 			}
 			channelName = pmChannel; // update to the PM channel name
+		}
+
+		if (channelNameCheck(channelName)) {
+			std::string err = ":" + _clients[clientSocket].GetNickName() + " 403 " + channelName + " :No such channel\r\n";
+			send(clientSocket, err.c_str(), err.size(), 0);
+			return;
 		}
 
 		// If channel doesn't exist, create it, set operator, etc.
@@ -281,7 +287,7 @@ void Server::PrivMsg(int clientSocket, const std::vector<std::string>& tokens) {
 			if (send(userFd, fullMsg.c_str(), fullMsg.size(), 0) == -1) {
 				perror("Error sending PRIVMSG to channel user");
 				// Remove user from channel and log
-				std::cout << "Removing user " << userFd << " from channel " << channel.GetName() 
+				std::cout << "Removing user " << userFd << " from channel " << channel.GetName()
 						  << " due to send failure" << std::endl;
 				channel.RemoveUser(userFd);
 				// Consider also removing from other channels and closing connection
